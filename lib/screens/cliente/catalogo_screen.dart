@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../models/categoria.dart';
 import '../../services/tienda.dart';
+<<<<<<< HEAD
+=======
+import '../../theme/tema_fornogo.dart';
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
 import '../../widgets/imagen_producto.dart';
 import '../../widgets/logo_forno.dart';
 import '../../utils/formato_moneda.dart';
@@ -50,11 +54,27 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
 
     return Scaffold(
       appBar: AppBar(
+<<<<<<< HEAD
+=======
+        backgroundColor: TemaFornoGO.rojo,
+        surfaceTintColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Colors.white),
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
         leading: const Padding(
           padding: EdgeInsets.all(6),
           child: LogoForno(size: 36, soloIcono: true),
         ),
+<<<<<<< HEAD
         title: const Text('FornoGO'),
+=======
+        title: const Text(
+          'FornoGO',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
         actions: [
           IconButton(
             tooltip: 'Salir',

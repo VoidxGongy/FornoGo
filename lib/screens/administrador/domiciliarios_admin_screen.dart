@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../models/domiciliario.dart';
 import '../../services/tienda.dart';
+<<<<<<< HEAD
+=======
+import '../../widgets/logo_forno.dart';
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
 
 class DomiciliariosAdminScreen extends StatefulWidget {
   const DomiciliariosAdminScreen({super.key});
@@ -31,7 +35,17 @@ class _DomiciliariosAdminScreenState extends State<DomiciliariosAdminScreen> {
   Widget build(BuildContext context) {
     final domiciliarios = Tienda.instancia.domiciliarios;
     return Scaffold(
+<<<<<<< HEAD
       appBar: AppBar(title: const Text('Domiciliarios')),
+=======
+      appBar: AppBar(
+        leading: const Padding(
+          padding: EdgeInsets.all(6),
+          child: LogoForno(size: 36, soloIcono: true),
+        ),
+        title: const Text('Domiciliarios'),
+      ),
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
       body: domiciliarios.isEmpty
           ? const Center(child: Text('No hay domiciliarios registrados.'))
           : ListView.builder(

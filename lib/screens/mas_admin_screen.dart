@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../models/sesion.dart';
+<<<<<<< HEAD
+=======
+import '../widgets/logo_forno.dart';
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
 import 'administrador/categorias_admin_screen.dart';
 import 'perfil_screen.dart';
 
@@ -12,7 +16,17 @@ class MasAdminScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       appBar: AppBar(title: const Text('Más opciones')),
+=======
+      appBar: AppBar(
+        leading: const Padding(
+          padding: EdgeInsets.all(6),
+          child: LogoForno(size: 36, soloIcono: true),
+        ),
+        title: const Text('Más opciones'),
+      ),
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

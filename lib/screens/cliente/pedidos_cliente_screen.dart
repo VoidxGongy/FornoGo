@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../models/pedido.dart';
 import '../../services/tienda.dart';
 import '../../utils/formato_moneda.dart';
+<<<<<<< HEAD
+=======
+import '../../widgets/logo_forno.dart';
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
 
 class PedidosClienteScreen extends StatefulWidget {
   const PedidosClienteScreen({super.key});
@@ -19,7 +23,17 @@ class _PedidosClienteScreenState extends State<PedidosClienteScreen> {
         ? <Pedido>[]
         : Tienda.instancia.pedidosDeCliente(sesion.usuarioId).reversed.toList();
     return Scaffold(
+<<<<<<< HEAD
       appBar: AppBar(title: const Text('Mis pedidos')),
+=======
+      appBar: AppBar(
+        leading: const Padding(
+          padding: EdgeInsets.all(6),
+          child: LogoForno(size: 36, soloIcono: true),
+        ),
+        title: const Text('Mis pedidos'),
+      ),
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
       body: pedidos.isEmpty
           ? const Center(child: Text('Todavía no tienes pedidos.'))
           : ListView.builder(

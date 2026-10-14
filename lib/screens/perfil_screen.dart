@@ -55,7 +55,17 @@ class PerfilScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       appBar: AppBar(title: const Text('Mi perfil')),
+=======
+      appBar: AppBar(
+        leading: const Padding(
+          padding: EdgeInsets.all(6),
+          child: LogoForno(size: 36, soloIcono: true),
+        ),
+        title: const Text('Mi perfil'),
+      ),
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

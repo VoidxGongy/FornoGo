@@ -4,6 +4,10 @@ import '../../models/pedido.dart';
 import '../../models/sesion.dart';
 import '../../services/tienda.dart';
 import '../../utils/formato_moneda.dart';
+<<<<<<< HEAD
+=======
+import '../../widgets/logo_forno.dart';
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
 
 class EntregasScreen extends StatefulWidget {
   const EntregasScreen({super.key, this.mostrarCompletados = false});
@@ -30,7 +34,17 @@ class _EntregasScreenState extends State<EntregasScreen> {
                 pedido.estado != EstadoPedido.rechazado)
         .toList();
     return Scaffold(
+<<<<<<< HEAD
       appBar: AppBar(title: const Text('Mis entregas')),
+=======
+      appBar: AppBar(
+        leading: const Padding(
+          padding: EdgeInsets.all(6),
+          child: LogoForno(size: 36, soloIcono: true),
+        ),
+        title: const Text('Mis entregas'),
+      ),
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
       body: entregas.isEmpty
           ? Center(
               child: Text(widget.mostrarCompletados

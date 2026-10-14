@@ -23,9 +23,22 @@ class TemaFornoGO {
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
+<<<<<<< HEAD
         backgroundColor: fondo,
         surfaceTintColor: Colors.transparent,
         foregroundColor: texto,
+=======
+        backgroundColor: rojo,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        iconTheme: IconThemeData(color: Colors.white),
+        actionsIconTheme: IconThemeData(color: Colors.white),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
       ),
       cardTheme: CardThemeData(
         color: superficie,

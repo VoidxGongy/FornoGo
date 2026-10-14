@@ -4,6 +4,10 @@ import '../../models/pedido.dart';
 import '../../services/tienda.dart';
 import '../../utils/formato_moneda.dart';
 import '../../widgets/imagen_producto.dart';
+<<<<<<< HEAD
+=======
+import '../../widgets/logo_forno.dart';
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
 
 class PedidosAdminScreen extends StatefulWidget {
   const PedidosAdminScreen({super.key});
@@ -20,7 +24,17 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
     final tienda = Tienda.instancia;
     final pedidos = tienda.pedidos.reversed.toList();
     return Scaffold(
+<<<<<<< HEAD
       appBar: AppBar(title: const Text('Pedidos recibidos')),
+=======
+      appBar: AppBar(
+        leading: const Padding(
+          padding: EdgeInsets.all(6),
+          child: LogoForno(size: 36, soloIcono: true),
+        ),
+        title: const Text('Pedidos recibidos'),
+      ),
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
       body: pedidos.isEmpty
           ? const Center(child: Text('No hay pedidos registrados.'))
           : ListView.builder(

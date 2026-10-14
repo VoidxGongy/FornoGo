@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../services/tienda.dart';
 import '../../utils/formato_moneda.dart';
 import '../../widgets/imagen_producto.dart';
+<<<<<<< HEAD
+=======
+import '../../widgets/logo_forno.dart';
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
 import 'producto_form_screen.dart';
 
 class ProductosAdminScreen extends StatefulWidget {
@@ -24,7 +28,17 @@ class _ProductosAdminScreenState extends State<ProductosAdminScreen> {
   Widget build(BuildContext context) {
     final tienda = Tienda.instancia;
     return Scaffold(
+<<<<<<< HEAD
       appBar: AppBar(title: const Text('Productos')),
+=======
+      appBar: AppBar(
+        leading: const Padding(
+          padding: EdgeInsets.all(6),
+          child: LogoForno(size: 36, soloIcono: true),
+        ),
+        title: const Text('Productos'),
+      ),
+>>>>>>> 4e4b37b (Mejora del menu y detelles)
       body: tienda.productos.isEmpty
           ? const Center(child: Text('No hay productos registrados.'))
           : ListView.builder(
