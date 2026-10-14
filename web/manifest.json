@@ -1,11 +1,11 @@
 {
-    "name": "hello_world",
-    "short_name": "hello_world",
+    "name": "FornoGO",
+    "short_name": "FornoGO",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFF9F6",
+    "theme_color": "#D92D2D",
+    "description": "FornoGO - tu pizza favorita, hasta tu puerta.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

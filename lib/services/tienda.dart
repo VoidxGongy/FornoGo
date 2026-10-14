@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../models/administrador.dart';
 import '../models/categoria.dart';
 import '../models/cliente.dart';
@@ -10,6 +12,7 @@ import '../models/pedido.dart';
 import '../models/producto.dart';
 import '../models/producto_carrito.dart';
 import '../models/sesion.dart';
+import '../data/imagenes_productos.dart';
 import 'preferencias.dart';
 
 /// Costo fijo de domicilio usado en el prototipo.
@@ -21,7 +24,7 @@ const double kCostoDomicilio = 5000;
 /// Las listas viven en memoria y se persisten con Preferencias
 /// (SharedPreferences + jsonEncode / jsonDecode).
 ///
-class Tienda {
+class Tienda extends ChangeNotifier {
   Tienda._();
   static final Tienda instancia = Tienda._();
 
@@ -85,13 +88,98 @@ class Tienda {
     rutaLogo = prefs.cargarLogoRuta();
     logoEsAsset = prefs.cargarLogoEsAsset();
 
-    if (!prefs.yaInicializado()) {
+    final primeraEjecucion = !prefs.yaInicializado();
+    if (primeraEjecucion) {
       cargarSemillaSiVacia();
-      await guardarCambios();
-      await prefs.marcarInicializado();
-    } else {
-      _actualizarContadores();
     }
+
+    // Actualiza la cuenta académica de María sin sobrescribir otros usuarios.
+    final correoMariaActualizado = migrarCorreoMaria();
+
+    // Corrige rutas antiguas o vacías sin borrar precios, disponibilidad ni pedidos.
+    final rutasCorregidas = migrarRutasImagenesProductos();
+    if (primeraEjecucion || rutasCorregidas || correoMariaActualizado) {
+      await guardarCambios();
+    }
+    if (primeraEjecucion) {
+      await prefs.marcarInicializado();
+    }
+    _actualizarContadores();
+  }
+
+  /// Migra el correo antiguo de la cuenta inicial a Gmail una sola vez.
+  bool migrarCorreoMaria() {
+    for (final cliente in clientes) {
+      if (cliente.correo.trim().toLowerCase() == 'maria@correo.com') {
+        cliente.correo = 'maria@gmail.com';
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Migra productos guardados antes de que se centralizaran los PNG del catálogo.
+  /// Es idempotente: si ya tienen la ruta correcta no vuelve a escribirlos.
+  bool migrarRutasImagenesProductos() {
+    var cambio = false;
+    for (final producto in productos) {
+      final rutaCorrecta = _rutaImagenPorProducto(producto);
+      if (rutaCorrecta != null &&
+          (producto.rutaImagen != rutaCorrecta || !producto.esAsset)) {
+        producto.rutaImagen = rutaCorrecta;
+        producto.esAsset = true;
+        cambio = true;
+      }
+    }
+
+    // También actualiza miniaturas antiguas que ya estaban guardadas en el carrito.
+    for (final item in carrito) {
+      Producto? producto;
+      for (final candidato in productos) {
+        if (candidato.id == item.productoId) {
+          producto = candidato;
+          break;
+        }
+      }
+      if (producto != null &&
+          (item.rutaImagen != producto.rutaImagen || !item.esAsset)) {
+        item.rutaImagen = producto.rutaImagen;
+        item.esAsset = true;
+        cambio = true;
+      }
+    }
+    return cambio;
+  }
+
+  String? _rutaImagenPorProducto(Producto producto) {
+    switch (producto.id) {
+      case 1:
+        return ImagenesProductos.margarita;
+      case 2:
+        return ImagenesProductos.pepperoni;
+      case 3:
+        return ImagenesProductos.hawaiana;
+      case 4:
+        return ImagenesProductos.cuatroQuesos;
+      case 5:
+        return ImagenesProductos.gaseosa;
+      case 6:
+        return ImagenesProductos.agua;
+      case 7:
+        return ImagenesProductos.brownie;
+      case 8:
+        return ImagenesProductos.tiramisu;
+    }
+    final nombre = producto.nombre.toLowerCase();
+    if (nombre.contains('margarita')) return ImagenesProductos.margarita;
+    if (nombre.contains('pepperoni')) return ImagenesProductos.pepperoni;
+    if (nombre.contains('hawaiana')) return ImagenesProductos.hawaiana;
+    if (nombre.contains('cuatro quesos')) return ImagenesProductos.cuatroQuesos;
+    if (nombre.contains('gaseosa')) return ImagenesProductos.gaseosa;
+    if (nombre.contains('agua')) return ImagenesProductos.agua;
+    if (nombre.contains('brownie')) return ImagenesProductos.brownie;
+    if (nombre.contains('tiramis')) return ImagenesProductos.tiramisu;
+    return null;
   }
 
   /// Guarda TODAS las listas actuales. Usar después de agregar, editar o eliminar.
@@ -110,6 +198,7 @@ class Tienda {
 
   /// No espera el guardado para no volver asíncronos todos los métodos CRUD.
   void _persistir() {
+    notifyListeners();
     unawaited(guardarCambios());
   }
 
@@ -242,7 +331,7 @@ class Tienda {
       Cliente(
         id: _siguienteCliente++,
         nombre: 'María García',
-        correo: 'maria@correo.com',
+        correo: 'maria@gmail.com',
         telefono: '3104567890',
         hashClave: hashAcademico('cliente123'),
         direccionPredeterminada: 'Cra 15 #45-30, Apto 302',

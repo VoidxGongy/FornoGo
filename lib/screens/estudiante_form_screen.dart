@@ -114,7 +114,7 @@ class _EstudianteFormScreenState extends State<EstudianteFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
-                value: _cursoIdSeleccionado,
+                initialValue: _cursoIdSeleccionado,
                 decoration: const InputDecoration(labelText: 'Curso'),
                 items: cursos
                     .map(

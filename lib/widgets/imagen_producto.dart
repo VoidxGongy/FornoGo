@@ -11,6 +11,8 @@ class ImagenProducto extends StatelessWidget {
     this.width = 72,
     this.height = 72,
     this.borderRadius = 8,
+    this.nombreProducto = 'Producto',
+    this.fit = BoxFit.cover,
   });
 
   final String ruta;
@@ -18,6 +20,8 @@ class ImagenProducto extends StatelessWidget {
   final double width;
   final double height;
   final double borderRadius;
+  final String nombreProducto;
+  final BoxFit fit;
 
   static const String placeholder = 'assets/images/placeholder.png';
 
@@ -36,12 +40,15 @@ class ImagenProducto extends StatelessWidget {
   Widget _imagen() {
     if (ruta.isEmpty) return _fallback();
 
-    if (esAsset) {
+    // Una ruta assets siempre debe resolverse como recurso incluido, aunque
+    // una versión anterior la haya guardado con esAsset=false.
+    if (esAsset || ruta.startsWith('assets/')) {
       return Image.asset(
         ruta,
         width: width,
         height: height,
-        fit: BoxFit.cover,
+        fit: fit,
+        semanticLabel: nombreProducto,
         errorBuilder: (_, __, ___) => _fallback(),
       );
     }
@@ -53,7 +60,8 @@ class ImagenProducto extends StatelessWidget {
       archivo,
       width: width,
       height: height,
-      fit: BoxFit.cover,
+      fit: fit,
+      semanticLabel: nombreProducto,
       errorBuilder: (_, __, ___) => _fallback(),
     );
   }
@@ -64,7 +72,8 @@ class ImagenProducto extends StatelessWidget {
       placeholder,
       width: width,
       height: height,
-      fit: BoxFit.cover,
+      fit: fit,
+      semanticLabel: 'Imagen no disponible',
       errorBuilder: (_, __, ___) {
         return ColoredBox(
           color: const Color(0xFFEEEEEE),

@@ -9,7 +9,7 @@ class Producto {
   /// Ruta del archivo: un asset (assets/images/...) o un archivo local.
   String rutaImagen;
 
-  /// true = Image.asset; false = Image.file (imagen elegida de la galería).
+  /// En el flujo actual se usan los PNG locales declarados como assets.
   bool esAsset;
   bool disponible;
 
@@ -44,7 +44,7 @@ class Producto {
       descripcion: json['descripcion'] as String,
       precio: (json['precio'] as num).toDouble(),
       categoriaId: json['categoriaId'] as int,
-      rutaImagen: json['rutaImagen'] as String,
+      rutaImagen: json['rutaImagen'] as String? ?? '',
       esAsset: json['esAsset'] as bool? ?? true,
       disponible: json['disponible'] as bool? ?? true,
     );

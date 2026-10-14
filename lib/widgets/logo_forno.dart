@@ -58,7 +58,8 @@ class LogoForno extends StatelessWidget {
       height: size,
       fit: BoxFit.contain,
       errorBuilder: (_, __, ___) {
-        return Icon(Icons.local_pizza, size: size * 0.7, color: const Color(0xFFD32F2F));
+        return Icon(Icons.local_pizza,
+            size: size * 0.7, color: const Color(0xFFD32F2F));
       },
     );
   }

@@ -52,8 +52,7 @@ class SharedPreferencesService {
     await preferences.setBool('sesion_activa', true);
   }
 
-  bool sesionActiva() =>
-      preferences.getBool('sesion_activa') ?? false;
+  bool sesionActiva() => preferences.getBool('sesion_activa') ?? false;
 
   Future<void> cerrarSesion() async {
     await preferences.setBool('sesion_activa', false);

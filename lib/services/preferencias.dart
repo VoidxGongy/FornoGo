@@ -134,7 +134,8 @@ class Preferencias {
   // ----------------------------------------------------------
   // ADMINISTRADORES
   // ----------------------------------------------------------
-  Future<void> guardarAdministradores(List<Administrador> administradores) async {
+  Future<void> guardarAdministradores(
+      List<Administrador> administradores) async {
     final texto = jsonEncode(administradores.map((a) => a.toJson()).toList());
     await _p.setString(claveAdministradores, texto);
   }

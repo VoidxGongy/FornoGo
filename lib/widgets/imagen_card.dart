@@ -21,11 +21,12 @@ class ImagenCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Image.network(
-            imagen.url,
+          Image.asset(
+            'assets/images/placeholder.png',
             height: 200,
             width: double.infinity,
             fit: BoxFit.cover,
+            semanticLabel: imagen.titulo,
             errorBuilder: (context, error, stackTrace) {
               return const SizedBox(
                 height: 200,
