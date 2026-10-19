@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../models/sesion.dart';
-import '../services/tienda.dart';
-import '../widgets/barra_navegacion_inferior.dart';
-import 'domiciliario/entregas_screen.dart';
-import 'inicio/login_screen.dart';
-import 'perfil_screen.dart';
+import '../../models/sesion.dart';
+import '../../services/tienda.dart';
+import '../../widgets/barra_navegacion_inferior.dart';
+import '../domiciliario/entregas_screen.dart';
+import '../inicio/login_screen.dart';
+import '../compartidos/perfil_screen.dart';
 
 class NavegacionDomiciliario extends StatefulWidget {
   const NavegacionDomiciliario({super.key});

@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:p23092026/models/item_pedido.dart';
 import 'package:p23092026/models/pedido.dart';
 import 'package:p23092026/models/producto.dart';
-import 'package:p23092026/services/tienda.dart';
 
 void main() {
   test('Producto conserva su ruta de imagen al serializarse', () {
@@ -59,26 +58,5 @@ void main() {
     expect(recuperado.estado, EstadoPedido.pendiente);
     expect(recuperado.items.single.nombre, 'Pizza Margarita');
     expect(recuperado.total, 33000);
-  });
-
-  test('La migración corrige la imagen conocida sin alterar el precio', () {
-    final tienda = Tienda.instancia;
-    tienda.productos = [
-      Producto(
-        id: 1,
-        nombre: 'Pizza Margarita',
-        descripcion: 'Producto guardado anteriormente',
-        precio: 29000,
-        categoriaId: 1,
-        rutaImagen: '',
-      ),
-    ];
-
-    final cambio = tienda.migrarRutasImagenesProductos();
-
-    expect(cambio, isTrue);
-    expect(tienda.productos.single.rutaImagen,
-        'assets/images/pizza_margarita.png');
-    expect(tienda.productos.single.precio, 29000);
   });
 }

@@ -12,7 +12,6 @@ import '../models/pedido.dart';
 import '../models/producto.dart';
 import '../models/producto_carrito.dart';
 import '../models/sesion.dart';
-import '../data/imagenes_productos.dart';
 import 'preferencias.dart';
 
 /// Costo fijo de domicilio usado en el prototipo.
@@ -93,93 +92,13 @@ class Tienda extends ChangeNotifier {
       cargarSemillaSiVacia();
     }
 
-    // Actualiza la cuenta académica de María sin sobrescribir otros usuarios.
-    final correoMariaActualizado = migrarCorreoMaria();
-
-    // Corrige rutas antiguas o vacías sin borrar precios, disponibilidad ni pedidos.
-    final rutasCorregidas = migrarRutasImagenesProductos();
-    if (primeraEjecucion || rutasCorregidas || correoMariaActualizado) {
+    if (primeraEjecucion) {
       await guardarCambios();
     }
     if (primeraEjecucion) {
       await prefs.marcarInicializado();
     }
     _actualizarContadores();
-  }
-
-  /// Migra el correo antiguo de la cuenta inicial a Gmail una sola vez.
-  bool migrarCorreoMaria() {
-    for (final cliente in clientes) {
-      if (cliente.correo.trim().toLowerCase() == 'maria@correo.com') {
-        cliente.correo = 'maria@gmail.com';
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /// Migra productos guardados antes de que se centralizaran los PNG del catálogo.
-  /// Es idempotente: si ya tienen la ruta correcta no vuelve a escribirlos.
-  bool migrarRutasImagenesProductos() {
-    var cambio = false;
-    for (final producto in productos) {
-      final rutaCorrecta = _rutaImagenPorProducto(producto);
-      if (rutaCorrecta != null &&
-          (producto.rutaImagen != rutaCorrecta || !producto.esAsset)) {
-        producto.rutaImagen = rutaCorrecta;
-        producto.esAsset = true;
-        cambio = true;
-      }
-    }
-
-    // También actualiza miniaturas antiguas que ya estaban guardadas en el carrito.
-    for (final item in carrito) {
-      Producto? producto;
-      for (final candidato in productos) {
-        if (candidato.id == item.productoId) {
-          producto = candidato;
-          break;
-        }
-      }
-      if (producto != null &&
-          (item.rutaImagen != producto.rutaImagen || !item.esAsset)) {
-        item.rutaImagen = producto.rutaImagen;
-        item.esAsset = true;
-        cambio = true;
-      }
-    }
-    return cambio;
-  }
-
-  String? _rutaImagenPorProducto(Producto producto) {
-    switch (producto.id) {
-      case 1:
-        return ImagenesProductos.margarita;
-      case 2:
-        return ImagenesProductos.pepperoni;
-      case 3:
-        return ImagenesProductos.hawaiana;
-      case 4:
-        return ImagenesProductos.cuatroQuesos;
-      case 5:
-        return ImagenesProductos.gaseosa;
-      case 6:
-        return ImagenesProductos.agua;
-      case 7:
-        return ImagenesProductos.brownie;
-      case 8:
-        return ImagenesProductos.tiramisu;
-    }
-    final nombre = producto.nombre.toLowerCase();
-    if (nombre.contains('margarita')) return ImagenesProductos.margarita;
-    if (nombre.contains('pepperoni')) return ImagenesProductos.pepperoni;
-    if (nombre.contains('hawaiana')) return ImagenesProductos.hawaiana;
-    if (nombre.contains('cuatro quesos')) return ImagenesProductos.cuatroQuesos;
-    if (nombre.contains('gaseosa')) return ImagenesProductos.gaseosa;
-    if (nombre.contains('agua')) return ImagenesProductos.agua;
-    if (nombre.contains('brownie')) return ImagenesProductos.brownie;
-    if (nombre.contains('tiramis')) return ImagenesProductos.tiramisu;
-    return null;
   }
 
   /// Guarda TODAS las listas actuales. Usar después de agregar, editar o eliminar.
@@ -226,7 +145,8 @@ class Tienda extends ChangeNotifier {
         descripcion: 'Tomate, mozzarella, albahaca',
         precio: 28000,
         categoriaId: 1,
-        rutaImagen: 'assets/images/pizza_margarita.png',
+        rutaImagen: '',
+        esAsset: false,
       ),
       Producto(
         id: _siguienteProducto++,
@@ -234,7 +154,8 @@ class Tienda extends ChangeNotifier {
         descripcion: 'Salsa de tomate, pepperoni, queso',
         precio: 32000,
         categoriaId: 1,
-        rutaImagen: 'assets/images/pizza_pepperoni.png',
+        rutaImagen: '',
+        esAsset: false,
       ),
       Producto(
         id: _siguienteProducto++,
@@ -242,7 +163,8 @@ class Tienda extends ChangeNotifier {
         descripcion: 'Jamón, piña y mozzarella',
         precio: 30000,
         categoriaId: 1,
-        rutaImagen: 'assets/images/pizza_hawaiana.png',
+        rutaImagen: '',
+        esAsset: false,
       ),
       Producto(
         id: _siguienteProducto++,
@@ -250,7 +172,8 @@ class Tienda extends ChangeNotifier {
         descripcion: 'Mozzarella, cheddar, gouda, parmesano',
         precio: 35000,
         categoriaId: 1,
-        rutaImagen: 'assets/images/pizza_cuatro_quesos.png',
+        rutaImagen: '',
+        esAsset: false,
       ),
       Producto(
         id: _siguienteProducto++,
@@ -258,7 +181,8 @@ class Tienda extends ChangeNotifier {
         descripcion: 'Coca-Cola, Pepsi o Sprite',
         precio: 4000,
         categoriaId: 2,
-        rutaImagen: 'assets/images/gaseosa.png',
+        rutaImagen: '',
+        esAsset: false,
       ),
       Producto(
         id: _siguienteProducto++,
@@ -266,7 +190,8 @@ class Tienda extends ChangeNotifier {
         descripcion: 'Con o sin gas',
         precio: 3000,
         categoriaId: 2,
-        rutaImagen: 'assets/images/agua.png',
+        rutaImagen: '',
+        esAsset: false,
       ),
       Producto(
         id: _siguienteProducto++,
@@ -274,7 +199,8 @@ class Tienda extends ChangeNotifier {
         descripcion: 'Con helado de vainilla',
         precio: 12000,
         categoriaId: 3,
-        rutaImagen: 'assets/images/brownie.png',
+        rutaImagen: '',
+        esAsset: false,
       ),
       Producto(
         id: _siguienteProducto++,
@@ -282,7 +208,8 @@ class Tienda extends ChangeNotifier {
         descripcion: 'Postre italiano con mascarpone',
         precio: 14000,
         categoriaId: 3,
-        rutaImagen: 'assets/images/tiramisu.png',
+        rutaImagen: '',
+        esAsset: false,
       ),
     ]);
 
@@ -292,49 +219,6 @@ class Tienda extends ChangeNotifier {
         nombre: 'Administrador FornoGO',
         correo: 'admin@fornogo.com',
         hashClave: hashAcademico('admin123'),
-      ),
-    );
-
-    // Domiciliarios de la semilla (el admin puede desactivarlos después).
-    domiciliarios.addAll([
-      Domiciliario(
-        id: _siguienteDomiciliario++,
-        nombre: 'Juan Pérez',
-        correo: 'juan@fornogo.com',
-        telefono: '3101112233',
-        hashClave: hashAcademico('domi123'),
-      ),
-      Domiciliario(
-        id: _siguienteDomiciliario++,
-        nombre: 'Luis Morales',
-        correo: 'luis@fornogo.com',
-        telefono: '3102223344',
-        hashClave: hashAcademico('domi123'),
-      ),
-      Domiciliario(
-        id: _siguienteDomiciliario++,
-        nombre: 'Diana Ramírez',
-        correo: 'diana@fornogo.com',
-        telefono: '3103334455',
-        hashClave: hashAcademico('domi123'),
-      ),
-      Domiciliario(
-        id: _siguienteDomiciliario++,
-        nombre: 'Camilo Ortega',
-        correo: 'camilo@fornogo.com',
-        telefono: '3104445566',
-        hashClave: hashAcademico('domi123'),
-      ),
-    ]);
-
-    clientes.add(
-      Cliente(
-        id: _siguienteCliente++,
-        nombre: 'María García',
-        correo: 'maria@gmail.com',
-        telefono: '3104567890',
-        hashClave: hashAcademico('cliente123'),
-        direccionPredeterminada: 'Cra 15 #45-30, Apto 302',
       ),
     );
   }

@@ -2,15 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../services/preferencias.dart';
 import '../../services/tienda.dart';
-<<<<<<< HEAD
 import '../../theme/tema_fornogo.dart';
-import '../../data/imagenes_productos.dart';
 import '../../widgets/logo_forno.dart';
-import '../../widgets/imagen_producto.dart';
-=======
-import '../../widgets/logo_forno.dart';
->>>>>>> 4e4b37b (Mejora del menu y detelles)
-import '../rol_home_screen.dart';
+import '../navegacion/rol_home_screen.dart';
 import 'login_screen.dart';
 import 'registro_cliente_screen.dart';
 
@@ -71,7 +65,6 @@ class _SplashScreenState extends State<SplashScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const LogoForno(size: 150),
-<<<<<<< HEAD
                     const SizedBox(height: 16),
                     Text('FornoGO',
                         style: Theme.of(context)
@@ -83,19 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
                     const SizedBox(height: 8),
                     Text('Tu pizza favorita, hasta tu puerta',
                         style: Theme.of(context).textTheme.bodyLarge),
-                    const SizedBox(height: 24),
-                    const ImagenProducto(
-                      ruta: ImagenesProductos.margarita,
-                      esAsset: true,
-                      width: 180,
-                      height: 120,
-                      borderRadius: 24,
-                      nombreProducto: 'Pizza Margarita',
-                    ),
-                    const SizedBox(height: 28),
-=======
-                    const SizedBox(height: 32),
->>>>>>> 4e4b37b (Mejora del menu y detelles)
+                    const SizedBox(height: 48),
                     if (!_listo)
                       const CircularProgressIndicator()
                     else ...[

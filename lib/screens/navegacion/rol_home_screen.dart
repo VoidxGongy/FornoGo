@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../models/sesion.dart';
-import '../services/tienda.dart';
+import '../../models/sesion.dart';
+import '../../services/tienda.dart';
 import 'navegacion_administrador.dart';
 import 'navegacion_cliente.dart';
 import 'navegacion_domiciliario.dart';

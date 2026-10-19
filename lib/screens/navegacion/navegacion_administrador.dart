@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../services/tienda.dart';
-import '../widgets/barra_navegacion_inferior.dart';
-import 'administrador/domiciliarios_admin_screen.dart';
-import 'administrador/pedidos_admin_screen.dart';
-import 'administrador/productos_admin_screen.dart';
-import 'inicio/login_screen.dart';
-import 'mas_admin_screen.dart';
+import '../../services/tienda.dart';
+import '../../widgets/barra_navegacion_inferior.dart';
+import '../administrador/domiciliarios_admin_screen.dart';
+import '../administrador/pedidos_admin_screen.dart';
+import '../administrador/productos_admin_screen.dart';
+import '../administrador/mas_admin_screen.dart';
+import '../inicio/login_screen.dart';
 
 class NavegacionAdministrador extends StatefulWidget {
   const NavegacionAdministrador({super.key});

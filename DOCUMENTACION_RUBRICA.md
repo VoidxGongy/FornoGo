@@ -102,7 +102,7 @@ Cada operación de `Tienda` actualiza la lista y llama a `_persistir()`, que gua
 - Splash: `lib/screens/inicio/splash_screen.dart`.
 - Login: `lib/screens/inicio/login_screen.dart`.
 - Registro: `lib/screens/inicio/registro_cliente_screen.dart`.
-- Menú por rol: `lib/screens/rol_home_screen.dart`.
+- Menú por rol: `lib/screens/navegacion/rol_home_screen.dart`.
 - Catálogo: `lib/screens/cliente/catalogo_screen.dart`.
 - Detalle de producto: `lib/screens/cliente/producto_detalle_screen.dart`.
 - Carrito: `lib/screens/cliente/carrito_screen.dart`.
@@ -114,19 +114,19 @@ Cada operación de `Tienda` actualiza la lista y llama a `_persistir()`, que gua
 - Domiciliarios: `lib/screens/administrador/domiciliarios_admin_screen.dart`.
 - Entregas: `lib/screens/domiciliario/entregas_screen.dart`.
 
-El prototipo anterior de cursos y estudiantes se conserva en `lib/models/curso.dart` y sus pantallas, pero no está conectado a `main.dart` ni a la navegación de FornoGO.
+El proyecto contiene únicamente los módulos conectados a FornoGO; no incluye módulos ajenos de cursos o estudiantes.
 
 ## Imágenes y tema
 
-Los recursos se declaran en `pubspec.yaml` con `assets/images/`. Los productos iniciales usan las imágenes locales existentes y `ImagenProducto` utiliza `Image.asset` con `placeholder.png` como reemplazo. La pantalla administrativa permite seleccionar una ruta de imagen local y muestra su vista previa. No se utiliza `Image.network`.
+Los recursos se declaran en `pubspec.yaml` con `assets/images/`. El logo y el placeholder son recursos locales; las fotografías de productos son adjuntadas por el administrador desde el dispositivo. `ImagenProducto` utiliza `placeholder.png` como reemplazo cuando no existe una fotografía. No se utiliza `Image.network`.
 
 Los colores se centralizan en `lib/theme/tema_fornogo.dart`: rojo `#D32F2F`, naranja `#F57C00`, amarillo `#FFC107`, texto `#333333` y verde `#2E7D32`.
 
-## Credenciales académicas
+## Administrador inicial
 
 - Administrador: `admin@fornogo.com` / `admin123`.
-- Domiciliario: `juan@fornogo.com` / `domi123`.
-- Cliente: `maria@gmail.com` / `cliente123`.
+
+Los clientes y domiciliarios se registran manualmente desde la aplicación.
 
 Las credenciales se guardan localmente con un hash académico ilustrativo. Esto no reemplaza una autenticación segura de producción.
 
@@ -136,8 +136,8 @@ Las credenciales se guardan localmente con un hash académico ilustrativo. Esto 
 - No existe sincronización entre teléfonos.
 - El pago es simulado; no se cobra en línea.
 - WhatsApp se abre mediante `url_launcher` para el número `3118965528`.
-- La selección se realiza entre los PNG incluidos en `assets/images/`; no se usa galería ni almacenamiento externo.
+- Las fotografías de productos se adjuntan desde el dispositivo del administrador.
 
 ## Verificación
 
-La revisión estática de `lib/` no reporta errores. `flutter analyze` no pudo ejecutarse en el entorno de desarrollo porque el SDK instalado en `/usr/share/flutter` requiere escribir en una ubicación de solo lectura. No se afirma que `flutter test` haya sido ejecutado.
+La revisión estática de `lib/` no reporta errores. `flutter analyze` se ejecutó correctamente y no encontró problemas. Las pruebas de `flutter test` también fueron ejecutadas correctamente.

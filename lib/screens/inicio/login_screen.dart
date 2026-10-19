@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/tienda.dart';
 import '../../widgets/logo_forno.dart';
-import '../rol_home_screen.dart';
+import '../navegacion/rol_home_screen.dart';
 import 'registro_cliente_screen.dart';
 
 /// Inicio de sesión local para los tres perfiles de FornoGO.

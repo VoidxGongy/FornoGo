@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../models/sesion.dart';
-<<<<<<< HEAD
-=======
-import '../widgets/logo_forno.dart';
->>>>>>> 4e4b37b (Mejora del menu y detelles)
-import 'administrador/categorias_admin_screen.dart';
-import 'perfil_screen.dart';
+import '../../models/sesion.dart';
+import '../../widgets/logo_forno.dart';
+import '../compartidos/perfil_screen.dart';
+import 'categorias_admin_screen.dart';
 
 class MasAdminScreen extends StatelessWidget {
   const MasAdminScreen({super.key, required this.cerrarSesion});
@@ -16,9 +13,6 @@ class MasAdminScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-<<<<<<< HEAD
-      appBar: AppBar(title: const Text('Más opciones')),
-=======
       appBar: AppBar(
         leading: const Padding(
           padding: EdgeInsets.all(6),
@@ -26,7 +20,6 @@ class MasAdminScreen extends StatelessWidget {
         ),
         title: const Text('Más opciones'),
       ),
->>>>>>> 4e4b37b (Mejora del menu y detelles)
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

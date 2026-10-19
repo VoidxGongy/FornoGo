@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 
-import '../../data/imagenes_productos.dart';
 import '../../models/producto.dart';
 import '../../services/tienda.dart';
 import '../../widgets/imagen_producto.dart';
@@ -21,6 +21,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
   int? _categoriaId;
   bool _disponible = true;
   late String _rutaImagen;
+  late bool _esAsset;
 
   @override
   void initState() {
@@ -35,9 +36,8 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
             ? null
             : Tienda.instancia.categoriasActivas().first.id);
     _disponible = producto?.disponible ?? true;
-    _rutaImagen = producto?.rutaImagen.isNotEmpty == true
-        ? producto!.rutaImagen
-        : ImagenesProductos.placeholder;
+    _rutaImagen = producto?.rutaImagen ?? '';
+    _esAsset = producto?.esAsset ?? false;
   }
 
   @override
@@ -49,7 +49,11 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
   }
 
   void _guardar() {
-    if (!_formKey.currentState!.validate() || _categoriaId == null) return;
+    if (!_formKey.currentState!.validate() ||
+        _categoriaId == null ||
+        _rutaImagen.isEmpty) {
+      return;
+    }
     final anterior = widget.producto;
     final producto = Producto(
       id: anterior?.id ?? 0,
@@ -58,7 +62,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
       precio: double.parse(_precio.text.replaceAll(',', '.')),
       categoriaId: _categoriaId!,
       rutaImagen: _rutaImagen,
-      esAsset: true,
+      esAsset: _esAsset,
       disponible: _disponible,
     );
     if (anterior == null) {
@@ -67,6 +71,21 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
       Tienda.instancia.editarProducto(producto);
     }
     Navigator.pop(context, true);
+  }
+
+  Future<void> _adjuntarImagen() async {
+    final resultado = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+    );
+    if (!mounted || resultado == null) return;
+
+    final ruta = resultado.files.single.path;
+    if (ruta == null || ruta.isEmpty) return;
+
+    setState(() {
+      _rutaImagen = ruta;
+      _esAsset = false;
+    });
   }
 
   @override
@@ -82,28 +101,27 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
           Center(
               child: ImagenProducto(
                   ruta: _rutaImagen,
-                  esAsset: true,
+                  esAsset: _esAsset,
                   nombreProducto:
                       _nombre.text.isEmpty ? 'Vista previa' : _nombre.text,
                   width: 150,
                   height: 150,
                   borderRadius: 16)),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-              initialValue: ImagenesProductos.opciones
-                      .any((opcion) => opcion['ruta'] == _rutaImagen)
-                  ? _rutaImagen
-                  : null,
-              decoration:
-                  const InputDecoration(labelText: 'Fotografía del producto'),
-              items: ImagenesProductos.opciones
-                  .map((opcion) => DropdownMenuItem(
-                      value: opcion['ruta'], child: Text(opcion['nombre']!)))
-                  .toList(),
-              onChanged: (ruta) {
-                if (ruta != null) setState(() => _rutaImagen = ruta);
-              },
-              validator: (v) => v == null ? 'Selecciona una imagen' : null),
+          OutlinedButton.icon(
+              onPressed: _adjuntarImagen,
+              icon: const Icon(Icons.attach_file),
+              label: Text(_rutaImagen.isEmpty
+                  ? 'Adjuntar fotografía'
+                  : 'Cambiar fotografía')),
+          if (_rutaImagen.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'Debes adjuntar una fotografía del producto.',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
           TextFormField(
               controller: _nombre,
               decoration: const InputDecoration(labelText: 'Nombre'),

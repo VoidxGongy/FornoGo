@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../models/sesion.dart';
-import '../services/tienda.dart';
-import '../widgets/barra_navegacion_inferior.dart';
-import 'cliente/carrito_screen.dart';
-import 'cliente/catalogo_screen.dart';
-import 'cliente/pedidos_cliente_screen.dart';
-import 'inicio/login_screen.dart';
-import 'perfil_screen.dart';
+import '../../models/sesion.dart';
+import '../../services/tienda.dart';
+import '../../widgets/barra_navegacion_inferior.dart';
+import '../cliente/carrito_screen.dart';
+import '../cliente/catalogo_screen.dart';
+import '../cliente/pedidos_cliente_screen.dart';
+import '../inicio/login_screen.dart';
+import '../compartidos/perfil_screen.dart';
 
 class NavegacionCliente extends StatefulWidget {
   const NavegacionCliente({super.key});
