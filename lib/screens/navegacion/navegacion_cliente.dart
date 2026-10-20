@@ -27,43 +27,45 @@ class _NavegacionClienteState extends State<NavegacionCliente> {
 
   @override
   Widget build(BuildContext context) {
-    final cantidad = Tienda.instancia.carrito
-        .fold<int>(0, (total, item) => total + item.cantidad);
     return AnimatedBuilder(
       animation: Tienda.instancia,
-      builder: (context, _) => Scaffold(
-        body: IndexedStack(
-          index: _indice,
-          children: [
-            const CatalogoScreen(),
-            const CarritoScreen(),
-            const PedidosClienteScreen(),
-            PerfilScreen(rol: Rol.cliente, cerrarSesion: _cerrarSesion),
-          ],
-        ),
-        bottomNavigationBar: BarraNavegacionInferior(
-          indiceSeleccionado: _indice,
-          alCambiar: (indice) => setState(() => _indice = indice),
-          destinos: [
-            const NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: 'Inicio'),
-            NavigationDestination(
-                icon: _iconoCarrito(Icons.shopping_bag_outlined, cantidad),
-                selectedIcon: _iconoCarrito(Icons.shopping_bag, cantidad),
-                label: 'Carrito'),
-            const NavigationDestination(
-                icon: Icon(Icons.receipt_long_outlined),
-                selectedIcon: Icon(Icons.receipt_long),
-                label: 'Pedidos'),
-            const NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'Perfil'),
-          ],
-        ),
-      ),
+      builder: (context, _) {
+        final cantidad = Tienda.instancia.carrito
+            .fold<int>(0, (total, item) => total + item.cantidad);
+        return Scaffold(
+          body: IndexedStack(
+            index: _indice,
+            children: [
+              const CatalogoScreen(),
+              const CarritoScreen(),
+              const PedidosClienteScreen(),
+              PerfilScreen(rol: Rol.cliente, cerrarSesion: _cerrarSesion),
+            ],
+          ),
+          bottomNavigationBar: BarraNavegacionInferior(
+            indiceSeleccionado: _indice,
+            alCambiar: (indice) => setState(() => _indice = indice),
+            destinos: [
+              const NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Inicio'),
+              NavigationDestination(
+                  icon: _iconoCarrito(Icons.shopping_bag_outlined, cantidad),
+                  selectedIcon: _iconoCarrito(Icons.shopping_bag, cantidad),
+                  label: 'Carrito'),
+              const NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long),
+                  label: 'Pedidos'),
+              const NavigationDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: 'Perfil'),
+            ],
+          ),
+        );
+      },
     );
   }
 

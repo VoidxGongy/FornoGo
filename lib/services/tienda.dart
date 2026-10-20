@@ -49,6 +49,11 @@ class Tienda extends ChangeNotifier {
   int _siguienteCliente = 1;
   int _siguienteAdministrador = 1;
 
+  // Serializa los guardados para que una operación rápida (por ejemplo,
+  // pulsar varias veces "Agregar") no sobrescriba un guardado anterior que
+  // todavía esté en curso.
+  Future<void>? _guardadoPendiente;
+
   /// Aviso académico: esto NO es autenticación segura de producción.
   /// Solo evita guardar la clave exactamente como la escribió el usuario.
   static String hashAcademico(String clave) {
@@ -115,10 +120,19 @@ class Tienda extends ChangeNotifier {
     await prefs.guardarLogo(ruta: rutaLogo, esAsset: logoEsAsset);
   }
 
-  /// No espera el guardado para no volver asíncronos todos los métodos CRUD.
+  /// Notifica inmediatamente y serializa la persistencia en segundo plano.
   void _persistir() {
     notifyListeners();
-    unawaited(guardarCambios());
+    final anterior = _guardadoPendiente ?? Future<void>.value();
+    final siguiente = anterior.then((_) => guardarCambios());
+    late final Future<void> guardado;
+    guardado = siguiente.whenComplete(() {
+      if (identical(_guardadoPendiente, guardado)) {
+        _guardadoPendiente = null;
+      }
+    });
+    _guardadoPendiente = guardado;
+    unawaited(guardado);
   }
 
   // ----------------------------------------------------------
@@ -617,6 +631,8 @@ class Tienda extends ChangeNotifier {
 
   void cerrarSesion() {
     sesion = null;
-    vaciarCarrito();
+    // El carrito pertenece al dispositivo y debe sobrevivir al cierre de
+    // sesión. Vaciarlo aquí hacía que pareciera que nunca se había guardado.
+    _persistir();
   }
 }

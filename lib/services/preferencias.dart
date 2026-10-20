@@ -11,18 +11,17 @@ import '../models/producto.dart';
 import '../models/producto_carrito.dart';
 import '../models/sesion.dart';
 
-///
 /// Servicio centralizado de persistencia local con SharedPreferences.
-///
+
 /// Flujo al GUARDAR una lista:
 ///   objeto.toJson()  →  jsonEncode(lista)  →  setString(clave, texto)
-///
+
 /// Flujo al CARGAR una lista:
 ///   getString(clave)  →  jsonDecode(texto)  →  Modelo.fromJson(mapa)
-///
+
 /// Limitación académica: los datos quedan en ESTE dispositivo.
 /// No se sincronizan entre varios celulares y no son una base de datos.
-///
+
 class Preferencias {
   Preferencias._();
   static final Preferencias instancia = Preferencias._();

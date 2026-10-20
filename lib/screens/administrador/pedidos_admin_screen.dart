@@ -19,7 +19,6 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
   @override
   Widget build(BuildContext context) {
     final tienda = Tienda.instancia;
-    final pedidos = tienda.pedidos.reversed.toList();
     return Scaffold(
       appBar: AppBar(
         leading: const Padding(
@@ -28,20 +27,38 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
         ),
         title: const Text('Pedidos recibidos'),
       ),
-      body: pedidos.isEmpty
-          ? const Center(child: Text('No hay pedidos registrados.'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: pedidos.length,
-              itemBuilder: (_, index) => _pedidoCard(pedidos[index]),
-            ),
+      body: AnimatedBuilder(
+        animation: tienda,
+        builder: (context, _) {
+          final pedidos = tienda.pedidos.reversed.toList();
+          return pedidos.isEmpty
+              ? const Center(child: Text('No hay pedidos registrados.'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: pedidos.length,
+                  itemBuilder: (_, index) => _pedidoCard(pedidos[index]),
+                );
+        },
+      ),
     );
   }
 
   Widget _pedidoCard(Pedido pedido) {
     final tienda = Tienda.instancia;
-    final domiciliarioSeleccionado =
+    final domiciliarios = tienda.domiciliariosActivos();
+    final idsDomiciliarios = <int>{};
+    final opcionesDomiciliarios = domiciliarios
+        .where((domiciliario) => idsDomiciliarios.add(domiciliario.id))
+        .toList();
+    final candidatoDomiciliario =
         _seleccionesDomiciliario[pedido.id] ?? pedido.domiciliarioId;
+    // Un pedido antiguo puede apuntar a un domiciliario eliminado o inactivo.
+    // DropdownButton exige que initialValue exista exactamente una vez.
+    final domiciliarioSeleccionado = candidatoDomiciliario != null &&
+            idsDomiciliarios.contains(candidatoDomiciliario)
+        ? candidatoDomiciliario
+        : null;
+    final estados = <String>{...EstadoPedido.secuencia, pedido.estado}.toList();
     return Card(
       child: ExpansionTile(
         title: Text('Pedido #${pedido.id} · ${pedido.nombreCliente}'),
@@ -74,7 +91,7 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
             child: DropdownButtonFormField<String>(
               initialValue: pedido.estado,
               decoration: const InputDecoration(labelText: 'Estado'),
-              items: EstadoPedido.secuencia
+              items: estados
                   .map((estado) =>
                       DropdownMenuItem(value: estado, child: Text(estado)))
                   .toList(),
@@ -89,12 +106,11 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: DropdownButtonFormField<int>(
-              initialValue: pedido.domiciliarioId,
+              initialValue: domiciliarioSeleccionado,
               decoration:
                   const InputDecoration(labelText: 'Domiciliario asignado'),
               hint: const Text('Seleccionar domiciliario'),
-              items: tienda
-                  .domiciliariosActivos()
+              items: opcionesDomiciliarios
                   .map((domiciliario) => DropdownMenuItem(
                       value: domiciliario.id, child: Text(domiciliario.nombre)))
                   .toList(),
