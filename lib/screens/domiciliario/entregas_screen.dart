@@ -19,53 +19,90 @@ class EntregasScreen extends StatefulWidget {
 class _EntregasScreenState extends State<EntregasScreen> {
   @override
   Widget build(BuildContext context) {
-    final sesion = Tienda.instancia.sesion;
-    final todas = sesion?.rol == Rol.domiciliario
-        ? Tienda.instancia.pedidos
-            .where((pedido) => pedido.domiciliarioId == sesion!.usuarioId)
-            .toList()
-        : <Pedido>[];
-    final entregas = todas
-        .where((pedido) => widget.mostrarCompletados
-            ? pedido.estado == EstadoPedido.entregado
-            : pedido.estado != EstadoPedido.entregado &&
-                pedido.estado != EstadoPedido.rechazado &&
-                pedido.estado != EstadoPedido.cancelado)
-        .toList();
-    return Scaffold(
-      appBar: AppBar(
-        leading: const Padding(
-          padding: EdgeInsets.all(6),
-          child: LogoForno(size: 36, soloIcono: true),
-        ),
-        title: const Text('Mis entregas'),
-      ),
-      body: entregas.isEmpty
-          ? Center(
-              child: Text(widget.mostrarCompletados
-                  ? 'No tienes entregas completadas.'
-                  : 'No tienes entregas pendientes.'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: entregas.length,
-              itemBuilder: (_, index) {
-                final pedido = entregas[index];
-                return Card(
-                  child: ListTile(
-                    title:
-                        Text('Pedido #${pedido.id} · ${pedido.nombreCliente}'),
-                    subtitle: Text(
-                        '${pedido.direccion}\nTotal: ${formatoPesosColombianos(pedido.total)}'),
-                    isThreeLine: true,
-                    trailing: IconButton(
-                        icon: const Icon(Icons.check_circle_outline),
-                        onPressed: pedido.estado == EstadoPedido.enCamino
-                            ? () => _confirmar(pedido)
-                            : null),
-                  ),
-                );
-              },
+    return AnimatedBuilder(
+      animation: Tienda.instancia,
+      builder: (context, _) {
+        final sesion = Tienda.instancia.sesion;
+        final todas = sesion?.rol == Rol.domiciliario
+            ? Tienda.instancia.pedidos
+                .where((pedido) => pedido.domiciliarioId == sesion!.usuarioId)
+                .toList()
+            : <Pedido>[];
+        final entregas = todas
+            .where((pedido) => widget.mostrarCompletados
+                ? pedido.estado == EstadoPedido.entregado
+                : pedido.estado != EstadoPedido.entregado &&
+                    pedido.estado != EstadoPedido.rechazado &&
+                    pedido.estado != EstadoPedido.cancelado)
+            .toList();
+        return Scaffold(
+          appBar: AppBar(
+            leading: const Padding(
+              padding: EdgeInsets.all(6),
+              child: LogoForno(size: 36, soloIcono: true),
             ),
+            title: const Text('Mis entregas'),
+          ),
+          body: entregas.isEmpty
+              ? Center(
+                  child: Text(widget.mostrarCompletados
+                      ? 'No tienes entregas completadas.'
+                      : 'No tienes entregas pendientes.'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: entregas.length,
+                  itemBuilder: (_, index) {
+                    final pedido = entregas[index];
+                    final puedeActualizar =
+                        pedido.estado == EstadoPedido.enCamino;
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                        child: Column(
+                          children: [
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(
+                                  'Pedido #${pedido.id} · ${pedido.nombreCliente}'),
+                              subtitle: Text(
+                                  '${pedido.direccion}\nTotal: ${formatoPesosColombianos(pedido.total)}'),
+                              isThreeLine: true,
+                              trailing: _estadoEntrega(pedido),
+                            ),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: puedeActualizar
+                                    ? () => _confirmar(pedido)
+                                    : null,
+                                icon: const Icon(Icons.sync),
+                                label:
+                                    Text(pedido.estado == EstadoPedido.entregado
+                                        ? 'Pedido entregado'
+                                        : puedeActualizar
+                                            ? 'Actualizar entrega'
+                                            : 'Aún no entregado'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        );
+      },
+    );
+  }
+
+  Widget _estadoEntrega(Pedido pedido) {
+    final entregado = pedido.estado == EstadoPedido.entregado;
+    return Chip(
+      avatar: Icon(
+        entregado ? Icons.check_circle : Icons.schedule,
+        size: 18,
+      ),
+      label: Text(entregado ? 'Entregado' : 'Aún no entregado'),
     );
   }
 

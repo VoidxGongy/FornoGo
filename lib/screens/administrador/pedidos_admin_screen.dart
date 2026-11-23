@@ -113,6 +113,11 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: DropdownButtonFormField<String>(
+              key: ValueKey((
+                pedido.id,
+                pedido.domiciliarioId,
+                domiciliarioSeleccionado,
+              )),
               initialValue: domiciliarioSeleccionado,
               decoration:
                   const InputDecoration(labelText: 'Domiciliario asignado'),
@@ -122,7 +127,13 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
                       value: domiciliario.id, child: Text(domiciliario.nombre)))
                   .toList(),
               onChanged: (id) {
-                setState(() => _seleccionesDomiciliario[pedido.id] = id);
+                setState(() {
+                  if (id == null) {
+                    _seleccionesDomiciliario.remove(pedido.id);
+                  } else {
+                    _seleccionesDomiciliario[pedido.id] = id;
+                  }
+                });
               },
             ),
           ),
