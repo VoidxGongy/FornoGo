@@ -53,7 +53,8 @@ class _EntregasScreenState extends State<EntregasScreen> {
                   itemCount: entregas.length,
                   itemBuilder: (_, index) {
                     final pedido = entregas[index];
-                    final puedeActualizar =
+                    final puedeIniciar = pedido.estado == EstadoPedido.listo;
+                    final puedeConfirmar =
                         pedido.estado == EstadoPedido.enCamino;
                     return Card(
                       child: Padding(
@@ -72,16 +73,22 @@ class _EntregasScreenState extends State<EntregasScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: FilledButton.icon(
-                                onPressed: puedeActualizar
-                                    ? () => _confirmar(pedido)
-                                    : null,
-                                icon: const Icon(Icons.sync),
+                                onPressed: puedeIniciar
+                                    ? () => _iniciarEntrega(pedido)
+                                    : puedeConfirmar
+                                        ? () => _confirmar(pedido)
+                                        : null,
+                                icon: Icon(puedeIniciar
+                                    ? Icons.local_shipping_outlined
+                                    : Icons.sync),
                                 label:
                                     Text(pedido.estado == EstadoPedido.entregado
                                         ? 'Pedido entregado'
-                                        : puedeActualizar
-                                            ? 'Actualizar entrega'
-                                            : 'Aún no entregado'),
+                                        : puedeIniciar
+                                            ? 'Iniciar entrega'
+                                            : puedeConfirmar
+                                                ? 'Confirmar entrega'
+                                                : 'Aún no entregado'),
                               ),
                             ),
                           ],
@@ -104,6 +111,12 @@ class _EntregasScreenState extends State<EntregasScreen> {
       ),
       label: Text(entregado ? 'Entregado' : 'Aún no entregado'),
     );
+  }
+
+  Future<void> _iniciarEntrega(Pedido pedido) async {
+    if (!mounted) return;
+    await ejecutarOperacion(
+        context, () => Tienda.instancia.iniciarEntrega(pedido.id));
   }
 
   Future<void> _confirmar(Pedido pedido) async {

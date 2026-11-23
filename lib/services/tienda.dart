@@ -419,6 +419,11 @@ class Tienda extends ChangeNotifier {
         'metodoPago': metodoPago.toLowerCase(),
       });
 
+  Future<void> iniciarEntrega(String pedidoId) =>
+      _db.collection('pedidos').doc(pedidoId).update({
+        'estado': EstadoPedidoFirestore.enCamino.name,
+      });
+
   Future<void> actualizarEstadoPedido(String id, String estado) async {
     final ref = _db.collection('pedidos').doc(id);
     await _db.runTransaction((tx) async {

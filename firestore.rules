@@ -123,10 +123,14 @@ service cloud.firestore {
                 && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.rol == 'domiciliario'
                 && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.activo == true)))
         || (rol('domiciliario') && resource.data.domiciliarioId == request.auth.uid
-          && resource.data.estado == 'enCamino' && request.resource.data.estado == 'entregado'
-          && medioDePago(request.resource.data.metodoPago)
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['estado', 'metodoPago']));
+            .hasOnly(['estado', 'metodoPago'])
+          && ((resource.data.estado == 'listo'
+                && request.resource.data.estado == 'enCamino'
+                && request.resource.data.metodoPago == resource.data.metodoPago)
+              || (resource.data.estado == 'enCamino'
+                && request.resource.data.estado == 'entregado'
+                && medioDePago(request.resource.data.metodoPago))));
     }
   }
 }
