@@ -12,6 +12,7 @@ import '../models/pedido.dart';
 import '../models/producto.dart';
 import '../models/producto_carrito.dart';
 import '../models/sesion.dart';
+import 'catalogo_firestore.dart';
 import 'preferencias.dart';
 
 /// Costo fijo de domicilio usado en el prototipo.
@@ -41,6 +42,9 @@ class Tienda extends ChangeNotifier {
   Sesion? sesion;
   String rutaLogo = 'assets/images/logo.png';
   bool logoEsAsset = true;
+
+  bool _catalogoActualizado = false;
+  bool get catalogoActualizado => _catalogoActualizado;
 
   int _siguienteProducto = 1;
   int _siguienteCategoria = 1;
@@ -103,7 +107,26 @@ class Tienda extends ChangeNotifier {
     if (primeraEjecucion) {
       await prefs.marcarInicializado();
     }
+    if (kIsWeb) {
+      await _actualizarCatalogoWeb(prefs);
+    }
     _actualizarContadores();
+  }
+
+  Future<void> _actualizarCatalogoWeb(Preferencias prefs) async {
+    _catalogoActualizado = false;
+    try {
+      final catalogo =
+          await cargarCatalogoFirestore().timeout(const Duration(seconds: 10));
+      categorias = catalogo.categorias;
+      productos = catalogo.productos;
+      _catalogoActualizado = true;
+    } on Exception catch (error) {
+      debugPrint('No se pudo cargar el catálogo de Firestore ($error)');
+      return;
+    }
+    await prefs.guardarCategorias(categorias);
+    await prefs.guardarProductos(productos);
   }
 
   /// Guarda TODAS las listas actuales. Usar después de agregar, editar o eliminar.

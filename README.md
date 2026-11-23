@@ -1,6 +1,6 @@
 # FornoGO
 
-Aplicación móvil Flutter para administrar el catálogo, clientes, pedidos y domicilios de una pizzería. El proyecto funciona de forma local y académica, sin Firebase, backend ni base de datos externa.
+Aplicación móvil Flutter para administrar el catálogo, clientes, pedidos y domicilios de una pizzería. La aplicación Android funciona de forma local. La demostración web consulta el catálogo publicado en Cloud Firestore.
 
 ## Ejecución
 
@@ -9,7 +9,22 @@ flutter pub get
 flutter run
 ```
 
-La información se conserva en el dispositivo mediante `SharedPreferences`.
+En Android, la información se conserva en el dispositivo mediante `SharedPreferences`.
+
+## Demostración web
+
+Firebase Hosting publica la compilación web de Flutter. El proyecto de Firebase es
+`fornogo-pizzeria-2026`. Las colecciones `categorias` y `productos` se leen al iniciar
+la aplicación y pueden editarse desde Firebase Console. Las reglas conceden a los
+visitantes acceso de lectura al catálogo. Para probar los flujos de cuentas,
+carrito y pedidos, usa datos ficticios. La demostración los guarda en el navegador.
+
+Para compilar y volver a publicar:
+
+```bash
+flutter build web
+firebase deploy --only firestore:rules,hosting
+```
 
 ## Funcionalidades
 

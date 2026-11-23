@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/categoria.dart';
@@ -107,6 +108,11 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                             icon: const Icon(Icons.close),
                           ),
                   ))),
+          if (kIsWeb && !tienda.catalogoActualizado)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Se muestra la copia local del catálogo.'),
+            ),
           _filtro(categorias),
           Expanded(
             child: productos.isEmpty

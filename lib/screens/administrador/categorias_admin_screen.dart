@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/categoria.dart';
@@ -50,7 +51,8 @@ class _CategoriasAdminScreenState extends State<CategoriasAdminScreen> {
   Widget build(BuildContext context) {
     final categorias = Tienda.instancia.categorias;
     return Scaffold(
-        appBar: AppBar(title: const Text('Categorías')),
+        appBar: AppBar(
+            title: const Text(kIsWeb ? 'Categorías publicadas' : 'Categorías')),
         body: ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: categorias.length,
@@ -60,26 +62,30 @@ class _CategoriasAdminScreenState extends State<CategoriasAdminScreen> {
                   child: ListTile(
                       title: Text(categoria.nombre),
                       subtitle: Text(categoria.activa ? 'Activa' : 'Inactiva'),
-                      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                        IconButton(
-                            onPressed: () => _editar(categoria),
-                            icon: const Icon(Icons.edit)),
-                        IconButton(
-                            onPressed: () {
-                              final eliminada = Tienda.instancia
-                                  .eliminarCategoria(categoria.id);
-                              setState(() {});
-                              if (!eliminada) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'No se puede eliminar una categoría con productos.')));
-                              }
-                            },
-                            icon: const Icon(Icons.delete))
-                      ])));
+                      trailing: kIsWeb
+                          ? null
+                          : Row(mainAxisSize: MainAxisSize.min, children: [
+                              IconButton(
+                                  onPressed: () => _editar(categoria),
+                                  icon: const Icon(Icons.edit)),
+                              IconButton(
+                                  onPressed: () {
+                                    final eliminada = Tienda.instancia
+                                        .eliminarCategoria(categoria.id);
+                                    setState(() {});
+                                    if (!eliminada) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text(
+                                                  'No se puede eliminar una categoría con productos.')));
+                                    }
+                                  },
+                                  icon: const Icon(Icons.delete))
+                            ])));
             }),
-        floatingActionButton: FloatingActionButton(
-            onPressed: () => _editar(), child: const Icon(Icons.add)));
+        floatingActionButton: kIsWeb
+            ? null
+            : FloatingActionButton(
+                onPressed: () => _editar(), child: const Icon(Icons.add)));
   }
 }

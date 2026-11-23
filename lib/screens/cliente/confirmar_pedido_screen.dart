@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -80,6 +81,11 @@ class _ConfirmarPedidoScreenState extends State<ConfirmarPedidoScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            if (kIsWeb) ...[
+              const Text(
+                  'Pedido de demostración. Se guarda en este navegador.'),
+              const SizedBox(height: 12),
+            ],
             Text('Total: ${formatoPesosColombianos(tienda.totalCarrito())}',
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
@@ -110,7 +116,7 @@ class _ConfirmarPedidoScreenState extends State<ConfirmarPedidoScreen> {
                 ],
                 onChanged: (v) =>
                     setState(() => _metodoPago = v ?? MetodoPago.efectivo)),
-            if (_metodoPago == MetodoPago.transferencia) ...[
+            if (!kIsWeb && _metodoPago == MetodoPago.transferencia) ...[
               const SizedBox(height: 16),
               Card(
                   child: Padding(

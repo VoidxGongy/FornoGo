@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/tienda.dart';
@@ -30,7 +31,7 @@ class _ProductosAdminScreenState extends State<ProductosAdminScreen> {
           padding: EdgeInsets.all(6),
           child: LogoForno(size: 36, soloIcono: true),
         ),
-        title: const Text('Productos'),
+        title: const Text(kIsWeb ? 'Productos publicados' : 'Productos'),
       ),
       body: tienda.productos.isEmpty
           ? const Center(child: Text('No hay productos registrados.'))
@@ -48,27 +49,33 @@ class _ProductosAdminScreenState extends State<ProductosAdminScreen> {
                   title: Text(producto.nombre),
                   subtitle: Text(
                       '${categoria?.nombre ?? 'Sin categoría'} · ${formatoPesosColombianos(producto.precio)}'),
-                  trailing: PopupMenuButton<String>(
-                      onSelected: (opcion) {
-                        if (opcion == 'editar') _formulario(producto: producto);
-                        if (opcion == 'eliminar') {
-                          tienda.eliminarProducto(producto.id);
-                          setState(() {});
-                        }
-                      },
-                      itemBuilder: (_) => const [
-                            PopupMenuItem(
-                                value: 'editar', child: Text('Editar')),
-                            PopupMenuItem(
-                                value: 'eliminar', child: Text('Eliminar'))
-                          ]),
+                  trailing: kIsWeb
+                      ? null
+                      : PopupMenuButton<String>(
+                          onSelected: (opcion) {
+                            if (opcion == 'editar') {
+                              _formulario(producto: producto);
+                            }
+                            if (opcion == 'eliminar') {
+                              tienda.eliminarProducto(producto.id);
+                              setState(() {});
+                            }
+                          },
+                          itemBuilder: (_) => const [
+                                PopupMenuItem(
+                                    value: 'editar', child: Text('Editar')),
+                                PopupMenuItem(
+                                    value: 'eliminar', child: Text('Eliminar'))
+                              ]),
                 ));
               },
             ),
-      floatingActionButton: FloatingActionButton(
-          heroTag: 'admin-producto-fab',
-          onPressed: () => _formulario(),
-          child: const Icon(Icons.add)),
+      floatingActionButton: kIsWeb
+          ? null
+          : FloatingActionButton(
+              heroTag: 'admin-producto-fab',
+              onPressed: () => _formulario(),
+              child: const Icon(Icons.add)),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../services/tienda.dart';
@@ -33,6 +34,8 @@ class LogoForno extends StatelessWidget {
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) => _reemplazo(),
       );
+    } else if (kIsWeb) {
+      imagen = _reemplazo();
     } else {
       final archivo = File(ruta);
       if (!archivo.existsSync()) {

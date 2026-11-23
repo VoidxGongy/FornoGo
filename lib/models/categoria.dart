@@ -1,3 +1,5 @@
+import 'campos_firestore.dart';
+
 /// Modelo de categoría del menú (Pizzas, Bebidas, Postres, etc.).
 class Categoria {
   int id;
@@ -9,6 +11,19 @@ class Categoria {
     required this.nombre,
     this.activa = true,
   });
+
+  String get documentoId => id.toString();
+
+  Map<String, dynamic> toMap() => toJson();
+
+  factory Categoria.fromMap(
+    Map<String, dynamic> datos, {
+    required String documentoId,
+  }) =>
+      Categoria.fromJson({
+        ...datos,
+        'id': idCatalogoDesdeDocumento(documentoId, datos['id']),
+      });
 
   /// Convierte el objeto a un mapa para poder guardarlo como JSON.
   Map<String, dynamic> toJson() {

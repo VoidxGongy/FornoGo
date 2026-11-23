@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Muestra la foto de un producto: recurso de assets o archivo copiado en el dispositivo.
@@ -52,6 +53,8 @@ class ImagenProducto extends StatelessWidget {
         errorBuilder: (_, __, ___) => _fallback(),
       );
     }
+
+    if (kIsWeb) return _fallback();
 
     final archivo = File(ruta);
     if (!archivo.existsSync()) return _fallback();

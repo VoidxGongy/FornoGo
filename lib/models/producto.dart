@@ -1,3 +1,5 @@
+import 'campos_firestore.dart';
+
 /// Modelo de producto del catálogo de la pizzería.
 class Producto {
   int id;
@@ -23,6 +25,29 @@ class Producto {
     this.esAsset = true,
     this.disponible = true,
   });
+
+  /// El inventario usa este mismo ID en inventario/{documentoId}.
+  String get documentoId => id.toString();
+
+  String get categoriaDocumentoId => categoriaId.toString();
+
+  Map<String, dynamic> toMap() => toJson();
+
+  factory Producto.fromMap(
+    Map<String, dynamic> datos, {
+    required String documentoId,
+  }) {
+    final producto = Producto.fromJson({
+      ...datos,
+      'id': idCatalogoDesdeDocumento(documentoId, datos['id']),
+    });
+    if (producto.categoriaId < 1 ||
+        !producto.precio.isFinite ||
+        producto.precio < 0) {
+      throw const FormatException('La categoría o el precio son inválidos.');
+    }
+    return producto;
+  }
 
   Map<String, dynamic> toJson() {
     return {

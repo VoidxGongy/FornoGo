@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/preferencias.dart';
@@ -74,7 +75,10 @@ class _SplashScreenState extends State<SplashScreen>
                                 color: TemaFornoGO.rojo,
                                 fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    Text('Tu pizza favorita, hasta tu puerta',
+                    Text(
+                        kIsWeb
+                            ? 'Demostración web · Usa datos de prueba'
+                            : 'Tu pizza favorita, hasta tu puerta',
                         style: Theme.of(context).textTheme.bodyLarge),
                     const SizedBox(height: 48),
                     if (!_listo)
@@ -98,7 +102,7 @@ class _SplashScreenState extends State<SplashScreen>
                         width: 250,
                         height: 50,
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pushReplacement(
+                          onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => const RegistroClienteScreen(),
