@@ -41,6 +41,16 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['cantidades'])
           && request.resource.data.cantidades is map;
       }
+
+      match /notificaciones/{tokenId} {
+        allow read, delete: if propio(uid);
+        allow create, update: if propio(uid)
+          && request.resource.data.keys().hasOnly([
+            'token', 'plataforma', 'actualizadoEn'
+          ])
+          && request.resource.data.token is string
+          && request.resource.data.plataforma in ['android', 'web'];
+      }
     }
 
     match /categorias/{id} {
@@ -118,6 +128,14 @@ service cloud.firestore {
                 && resource.data.estado in [
                   'pendiente', 'asignado', 'aceptado', 'enPreparacion', 'listo', 'enCamino'
                 ])))
+        || (admin() && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['estado'])
+          && request.resource.data.estado in [
+            'pendiente', 'asignado', 'aceptado', 'enPreparacion', 'listo',
+            'enCamino', 'entregado', 'rechazado', 'cancelado', 'extraviado'
+          ]
+          && (request.resource.data.estado != 'asignado'
+              || resource.data.domiciliarioId is string))
         || (rol('domiciliario') && resource.data.domiciliarioId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['estado', 'metodoPago'])

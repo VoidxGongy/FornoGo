@@ -14,6 +14,7 @@ import '../models/producto.dart';
 import '../models/producto_carrito.dart';
 import '../models/sesion.dart';
 import '../models/usuario.dart';
+import 'notificaciones.dart';
 
 const double kCostoDomicilio = 5000;
 
@@ -91,6 +92,7 @@ class Tienda extends ChangeNotifier {
   Future<void> _limpiarSesion() async {
     final pendientes = List.of(_sesiones);
     _sesiones.clear();
+    await Notificaciones.detener();
     perfil = null;
     pedidos = [];
     domiciliarios = [];
@@ -111,6 +113,9 @@ class Tienda extends ChangeNotifier {
     }
     final usuario = Usuario.fromMap(datos, uid: uid);
     perfil = usuario;
+    unawaited(Notificaciones.iniciar(uid).catchError((error) {
+      debugPrint('FornoGO: no se pudieron activar notificaciones: $error');
+    }));
 
     _sesiones.add(documento.snapshots().listen((doc) {
       final datos = doc.data();
@@ -447,6 +452,14 @@ class Tienda extends ChangeNotifier {
         'estado': EstadoPedidoFirestore.entregado.name,
         'metodoPago': metodoPago.toLowerCase(),
       });
+
+  Future<void> actualizarEstadoAdministrativo(
+      String pedidoId, String estado) async {
+    final siguiente = EstadoPedido.paraFirestore(estado);
+    await _db.collection('pedidos').doc(pedidoId).update({
+      'estado': siguiente.name,
+    });
+  }
 
   Future<void> actualizarEstadoPedido(String id, String estado) async {
     final ref = _db.collection('pedidos').doc(id);

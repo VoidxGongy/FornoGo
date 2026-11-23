@@ -49,6 +49,19 @@ class EstadoPedido {
     enCamino,
     entregado,
   ];
+
+  static const List<String> estadosAdministrables = [
+    pendiente,
+    asignado,
+    aceptado,
+    enPreparacion,
+    listo,
+    enCamino,
+    entregado,
+    rechazado,
+    cancelado,
+    extraviado,
+  ];
 }
 
 /// Métodos de pago permitidos (se cobran al entregar, salvo transferencia).

@@ -91,11 +91,26 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.info_outline),
-              title: const Text('Estado del pedido'),
-              trailing: Chip(label: Text(pedido.estado)),
+            child: DropdownButtonFormField<String>(
+              key: ValueKey((pedido.id, pedido.estado)),
+              initialValue: pedido.estado,
+              decoration: const InputDecoration(
+                labelText: 'Estado del pedido',
+              ),
+              items: EstadoPedido.estadosAdministrables
+                  .map((estado) => DropdownMenuItem(
+                        value: estado,
+                        child: Text(estado),
+                      ))
+                  .toList(),
+              onChanged: (estado) {
+                if (estado == null || estado == pedido.estado) return;
+                ejecutarOperacion(
+                  context,
+                  () =>
+                      tienda.actualizarEstadoAdministrativo(pedido.id, estado),
+                );
+              },
             ),
           ),
           Padding(
