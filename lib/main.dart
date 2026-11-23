@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
+import 'services/notificaciones_forno.dart';
 import 'screens/inicio/splash_screen.dart';
 import 'theme/tema_fornogo.dart';
 
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
         title: 'FornoGO',
+        scaffoldMessengerKey: NotificacionesForno.instancia.mensajero,
         debugShowCheckedModeBanner: false,
         theme: TemaFornoGO.tema,
         home: const SplashScreen(),

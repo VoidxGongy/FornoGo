@@ -28,3 +28,31 @@ firebase deploy --only firestore:rules,hosting
 Firebase Hosting sirve `build/web`. Las reglas limitan el acceso a cada perfil, carrito y pedido. Android usa las opciones registradas para `com.example.p23092026`.
 
 El catálogo inicial e inventario residen en Firestore. Los datos que existían solo en instalaciones anteriores permanecen en esos dispositivos y deben revisarse antes de cualquier importación.
+## Notificaciones de pedidos
+
+El cliente y el domiciliario pueden activar las notificaciones en **Mi perfil**. La app registra el
+dispositivo con FCM mediante su Firebase Installation ID y guarda el registro en
+`usuarios/{uid}/dispositivos_push/{fid}`. Con la app abierta, muestra el aviso
+dentro de FornoGO. Android y el service worker web reciben los avisos en segundo plano.
+
+La compilación usa la clave VAPID pública del proyecto. Para cambiarla, genera la nueva clave en Configuración del proyecto → Cloud Messaging → Certificados de notificaciones web y reemplázala en las opciones de Firebase, o compila con `--dart-define=FCM_VAPID_KEY=CLAVE_PUBLICA`.
+
+```bash
+flutter build web
+firebase deploy --only firestore:rules,hosting
+```
+
+Tras activar las notificaciones, usa **Cloud Messaging → Enviar mensaje de prueba**
+con el FID del documento del dispositivo y pon la app en segundo plano.
+
+Los avisos automáticos usan la función `notificarCambioEstadoPedido`. La función escucha los
+cambios de estado de `pedidos` y envía al comprador y al domiciliario asignado mediante el Admin SDK y las
+credenciales del entorno. Firebase requiere el plan Blaze para desplegarla.
+
+```bash
+cd functions
+npm ci
+npm test
+cd ..
+firebase deploy --only functions:notificarCambioEstadoPedido
+```

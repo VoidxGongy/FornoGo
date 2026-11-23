@@ -7,25 +7,17 @@ Future<void> inicializarNotificacionEmergente() async {
   if (_inicializada) return;
 
   const ajustesAndroid = AndroidInitializationSettings('ic_launcher');
-  final ajustesApple = DarwinInitializationSettings(
+  const ajustesApple = DarwinInitializationSettings(
     requestAlertPermission: false,
     requestBadgePermission: false,
     requestSoundPermission: false,
   );
-  final ajustes = InitializationSettings(
+  const ajustes = InitializationSettings(
     android: ajustesAndroid,
     iOS: ajustesApple,
   );
 
   await _notificacionesLocales.initialize(ajustes);
-  await _notificacionesLocales
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.requestNotificationsPermission();
-  await _notificacionesLocales
-      .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin>()
-      ?.requestPermissions(alert: true, badge: true, sound: true);
   _inicializada = true;
 }
 
@@ -34,7 +26,7 @@ Future<void> mostrarNotificacionEmergente({
   required String cuerpo,
 }) async {
   await inicializarNotificacionEmergente();
-  final android = AndroidNotificationDetails(
+  const android = AndroidNotificationDetails(
     'actualizaciones_pedidos',
     'Actualizaciones de pedidos',
     channelDescription: 'Cambios de estado de los pedidos de FornoGO.',
@@ -47,7 +39,7 @@ Future<void> mostrarNotificacionEmergente({
     presentBadge: true,
     presentSound: true,
   );
-  final detalles = NotificationDetails(android: android, iOS: apple);
+  const detalles = NotificationDetails(android: android, iOS: apple);
   final id = DateTime.now().millisecondsSinceEpoch.remainder(2147483647);
   await _notificacionesLocales.show(id, titulo, cuerpo, detalles);
 }

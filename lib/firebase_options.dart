@@ -14,3 +14,7 @@ const firebaseAndroidOptions = FirebaseOptions(
   messagingSenderId: '475926770159',
   projectId: 'fornogo-pizzeria-2026',
 );
+
+// Clave pública para registrar suscripciones Web Push en FCM.
+const firebaseWebVapidKey =
+    'BMS0-PltpP84RpIGMxhLw4IRVbHDVMw720MU03hVqM_0WncS2JNF_9ww6PpooQFoho2wRq6zFisx1LLqdlE9wG8';

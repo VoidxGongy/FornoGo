@@ -1,7 +1,4 @@
 {
-  "functions": {
-    "source": "functions"
-  },
   "firestore": {
     "rules": "firestore.rules"
   },
@@ -29,7 +26,7 @@
         ]
       },
       {
-        "source": "**/@(index.html|flutter_bootstrap.js|main.dart.js|flutter_service_worker.js)",
+        "source": "**/@(index.html|flutter_bootstrap.js|main.dart.js|flutter_service_worker.js|firebase-messaging-sw.js)",
         "headers": [
           {
             "key": "Cache-Control",
@@ -38,5 +35,9 @@
         ]
       }
     ]
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22"
   }
 }

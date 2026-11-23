@@ -14,7 +14,7 @@ import '../models/producto.dart';
 import '../models/producto_carrito.dart';
 import '../models/sesion.dart';
 import '../models/usuario.dart';
-import 'notificaciones.dart';
+import 'notificaciones_forno.dart';
 
 const double kCostoDomicilio = 5000;
 
@@ -92,7 +92,6 @@ class Tienda extends ChangeNotifier {
   Future<void> _limpiarSesion() async {
     final pendientes = List.of(_sesiones);
     _sesiones.clear();
-    await Notificaciones.detener();
     perfil = null;
     pedidos = [];
     domiciliarios = [];
@@ -113,9 +112,6 @@ class Tienda extends ChangeNotifier {
     }
     final usuario = Usuario.fromMap(datos, uid: uid);
     perfil = usuario;
-    unawaited(Notificaciones.iniciar(uid).catchError((error) {
-      debugPrint('FornoGO: no se pudieron activar notificaciones: $error');
-    }));
 
     _sesiones.add(documento.snapshots().listen((doc) {
       final datos = doc.data();
@@ -150,6 +146,10 @@ class Tienda extends ChangeNotifier {
       pedidos = recibidos..sort((a, b) => a.fecha.compareTo(b.fecha));
       notifyListeners();
     }, onError: _informarError));
+    if (usuario.rol == RolUsuario.cliente ||
+        usuario.rol == RolUsuario.domiciliario) {
+      NotificacionesForno.instancia.vincular(uid);
+    }
     if (usuario.rol == RolUsuario.cliente) {
       _sesiones.add(_carritoRef(uid).snapshots().listen((doc) {
         _cantidades = _leerCantidades(doc.data());
@@ -193,6 +193,7 @@ class Tienda extends ChangeNotifier {
   }
 
   Future<void> cerrarSesion() async {
+    await NotificacionesForno.instancia.desvincular();
     await _auth.signOut();
     await _limpiarSesion();
   }

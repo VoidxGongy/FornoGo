@@ -129,16 +129,16 @@ class TemaFornoGO {
           ),
         ),
       ),
-      navigationRailTheme: NavigationRailThemeData(
+      navigationRailTheme: const NavigationRailThemeData(
         backgroundColor: superficie,
-        indicatorColor: const Color(0xFFFFE2DE),
-        selectedIconTheme: const IconThemeData(color: rojoOscuro),
-        unselectedIconTheme: const IconThemeData(color: textoSecundario),
-        selectedLabelTextStyle: const TextStyle(
+        indicatorColor: Color(0xFFFFE2DE),
+        selectedIconTheme: IconThemeData(color: rojoOscuro),
+        unselectedIconTheme: IconThemeData(color: textoSecundario),
+        selectedLabelTextStyle: TextStyle(
           color: rojoOscuro,
           fontWeight: FontWeight.w700,
         ),
-        unselectedLabelTextStyle: const TextStyle(
+        unselectedLabelTextStyle: TextStyle(
           color: textoSecundario,
           fontWeight: FontWeight.w500,
         ),

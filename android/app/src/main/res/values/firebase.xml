@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Configuración pública necesaria para que Firebase arranque en segundo plano. -->
+    <string name="google_app_id" translatable="false">1:475926770159:android:605d3806f98ae9d825861a</string>
+    <string name="google_api_key" translatable="false">AIzaSyA8X41lg-e1Y6BZZBH3rN9PFdfmeAv1-Pk</string>
+    <string name="gcm_defaultSenderId" translatable="false">475926770159</string>
+    <string name="project_id" translatable="false">fornogo-pizzeria-2026</string>
+</resources>

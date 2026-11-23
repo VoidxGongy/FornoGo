@@ -35,6 +35,15 @@ service cloud.firestore {
           .hasOnly(['nombre', 'telefono', 'activo'])
         && request.resource.data.nombre is string && request.resource.data.activo is bool;
 
+      match /dispositivos_push/{fid} {
+        allow get, delete: if propio(uid);
+        allow create, update: if propio(uid) && (rol('cliente') || rol('domiciliario'))
+          && fid.matches('^[A-Za-z0-9_-]{22}$')
+          && request.resource.data.keys().hasOnly(['plataforma', 'actualizadoEn'])
+          && request.resource.data.plataforma in ['android', 'web']
+          && request.resource.data.actualizadoEn == request.time;
+      }
+
       match /carrito/actual {
         allow read, delete: if propio(uid) && rol('cliente');
         allow create, update: if propio(uid) && rol('cliente')
@@ -42,15 +51,6 @@ service cloud.firestore {
           && request.resource.data.cantidades is map;
       }
 
-      match /notificaciones/{tokenId} {
-        allow read, delete: if propio(uid);
-        allow create, update: if propio(uid)
-          && request.resource.data.keys().hasOnly([
-            'token', 'plataforma', 'actualizadoEn'
-          ])
-          && request.resource.data.token is string
-          && request.resource.data.plataforma in ['android', 'web'];
-      }
     }
 
     match /categorias/{id} {

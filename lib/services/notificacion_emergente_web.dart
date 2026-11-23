@@ -1,21 +1,12 @@
-import 'dart:html' as html;
-
-Future<void> inicializarNotificacionEmergente() async {
-  if (html.Notification.permission == 'default') {
-    await html.Notification.requestPermission();
-  }
-}
+import 'package:web/web.dart' as web;
 
 Future<void> mostrarNotificacionEmergente({
   required String titulo,
   required String cuerpo,
 }) async {
-  await inicializarNotificacionEmergente();
-  if (html.Notification.permission != 'granted') return;
-
-  html.Notification(
+  if (web.Notification.permission != 'granted') return;
+  web.Notification(
     titulo,
-    body: cuerpo,
-    icon: '/icons/Icon-192.png',
+    web.NotificationOptions(body: cuerpo, icon: '/icons/Icon-192.png'),
   );
 }

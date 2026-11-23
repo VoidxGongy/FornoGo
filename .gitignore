@@ -49,3 +49,5 @@ app.*.map.json
 
 # Firebase Hosting cache
 /.firebase/
+
+/functions/node_modules/

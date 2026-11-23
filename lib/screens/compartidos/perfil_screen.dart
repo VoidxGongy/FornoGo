@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../models/sesion.dart';
+import '../../services/notificaciones_forno.dart';
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../theme/tema_fornogo.dart';
 import '../../widgets/logo_forno.dart';
 
@@ -51,6 +54,25 @@ class PerfilScreen extends StatelessWidget {
                   Text('Rol: ${rol[0].toUpperCase()}${rol.substring(1)}',
                       style:
                           const TextStyle(color: TemaFornoGO.textoSecundario)),
+                  if (rol == Rol.cliente || rol == Rol.domiciliario)
+                    ListenableBuilder(
+                      listenable: NotificacionesForno.instancia,
+                      builder: (context, _) {
+                        final avisos = NotificacionesForno.instancia;
+                        return OutlinedButton.icon(
+                          onPressed: avisos.activas || avisos.configurando
+                              ? null
+                              : () =>
+                                  ejecutarOperacion(context, avisos.activar),
+                          icon: const Icon(Icons.notifications_outlined),
+                          label: Text(avisos.activas
+                              ? 'Notificaciones activadas'
+                              : avisos.configurando
+                                  ? 'Activando notificaciones…'
+                                  : 'Activar notificaciones'),
+                        );
+                      },
+                    ),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
