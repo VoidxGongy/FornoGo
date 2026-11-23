@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Muestra la foto de un producto: recurso de assets o archivo copiado en el dispositivo.
 class ImagenProducto extends StatelessWidget {

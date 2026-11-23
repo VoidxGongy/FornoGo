@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../services/tienda.dart';
 import '../../widgets/barra_navegacion_inferior.dart';
