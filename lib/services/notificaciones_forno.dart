@@ -26,7 +26,8 @@ class NotificacionesForno extends ChangeNotifier {
   StreamSubscription<String>? _registros;
   StreamSubscription<RemoteMessage>? _mensajes;
 
-  bool get activas => _fid != null;
+  String? get idInstalacion => _uid == null ? null : _fid;
+  bool get activas => idInstalacion != null;
   bool get configurando => _registro != null;
 
   DocumentReference<Map<String, dynamic>> _dispositivo(
@@ -87,7 +88,10 @@ class NotificacionesForno extends ChangeNotifier {
     if (_uid != uid) return;
 
     _mensajes ??= FirebaseMessaging.onMessage.listen((mensaje) async {
-      if (_uid == null || mensaje.data['usuarioId'] != _uid) return;
+      if (_uid == null) return;
+      // Los avisos generales de Firebase Console no incluyen usuarioId.
+      final destinatario = mensaje.data['usuarioId'];
+      if (destinatario != null && destinatario != _uid) return;
       final texto = mensaje.notification?.body;
       if (texto == null || texto.isEmpty) return;
       try {

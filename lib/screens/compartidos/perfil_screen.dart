@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/sesion.dart';
 import '../../services/notificaciones_forno.dart';
@@ -59,17 +60,42 @@ class PerfilScreen extends StatelessWidget {
                       listenable: NotificacionesForno.instancia,
                       builder: (context, _) {
                         final avisos = NotificacionesForno.instancia;
-                        return OutlinedButton.icon(
-                          onPressed: avisos.activas || avisos.configurando
-                              ? null
-                              : () =>
-                                  ejecutarOperacion(context, avisos.activar),
-                          icon: const Icon(Icons.notifications_outlined),
-                          label: Text(avisos.activas
-                              ? 'Notificaciones activadas'
-                              : avisos.configurando
-                                  ? 'Activando notificaciones…'
-                                  : 'Activar notificaciones'),
+                        final idInstalacion = avisos.idInstalacion;
+                        return Column(
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: avisos.activas || avisos.configurando
+                                  ? null
+                                  : () => ejecutarOperacion(
+                                      context, avisos.activar),
+                              icon: const Icon(Icons.notifications_outlined),
+                              label: Text(avisos.activas
+                                  ? 'Notificaciones activadas'
+                                  : avisos.configurando
+                                      ? 'Activando notificaciones…'
+                                      : 'Activar notificaciones'),
+                            ),
+                            if (idInstalacion != null)
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final copiado = await ejecutarOperacion(
+                                    context,
+                                    () => Clipboard.setData(
+                                      ClipboardData(text: idInstalacion),
+                                    ),
+                                  );
+                                  if (!copiado || !context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('ID del dispositivo copiado'),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.copy_outlined),
+                                label: const Text('Copiar ID del dispositivo'),
+                              ),
+                          ],
                         );
                       },
                     ),
