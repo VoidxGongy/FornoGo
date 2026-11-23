@@ -405,12 +405,45 @@ class Tienda extends ChangeNotifier {
 
   Future<bool> asignarDomiciliario(
       String pedidoId, String domiciliarioId) async {
-    await _db
-        .collection('pedidos')
-        .doc(pedidoId)
-        .update({'domiciliarioId': domiciliarioId});
+    final ref = _db.collection('pedidos').doc(pedidoId);
+    await _db.runTransaction((tx) async {
+      final datos = (await tx.get(ref)).data();
+      if (datos == null) throw StateError('El pedido ya no existe.');
+      final estado = datos['estado'] as String?;
+      if (estado == EstadoPedidoFirestore.entregado.name ||
+          estado == EstadoPedidoFirestore.cancelado.name ||
+          estado == EstadoPedidoFirestore.extraviado.name) {
+        throw StateError('No se puede asignar un pedido finalizado.');
+      }
+      if (estado != EstadoPedidoFirestore.pendiente.name &&
+          estado != EstadoPedidoFirestore.asignado.name) {
+        throw StateError('El pedido ya está siendo procesado.');
+      }
+      final pedido = PedidoFirestore.fromMap(datos, id: pedidoId);
+      if (pedido.estado == EstadoPedidoFirestore.pendiente) {
+        await _descontarInventarioPedido(tx, pedido);
+      }
+      if (datos['domiciliarioId'] == domiciliarioId &&
+          estado == EstadoPedidoFirestore.asignado.name) {
+        return;
+      }
+      tx.update(ref, {
+        'domiciliarioId': domiciliarioId,
+        'estado': EstadoPedidoFirestore.asignado.name,
+      });
+    });
     return true;
   }
+
+  Future<void> cancelarPedido(String pedidoId) => _db
+      .collection('pedidos')
+      .doc(pedidoId)
+      .update({'estado': EstadoPedidoFirestore.cancelado.name});
+
+  Future<void> marcarPedidoExtraviado(String pedidoId) => _db
+      .collection('pedidos')
+      .doc(pedidoId)
+      .update({'estado': EstadoPedidoFirestore.extraviado.name});
 
   Future<void> confirmarEntrega(
           {required String pedidoId, required String metodoPago}) =>
@@ -418,6 +451,50 @@ class Tienda extends ChangeNotifier {
         'estado': EstadoPedidoFirestore.entregado.name,
         'metodoPago': metodoPago.toLowerCase(),
       });
+
+  Future<void> _descontarInventarioPedido(
+      Transaction tx, PedidoFirestore pedido) async {
+    final cantidades = <String, int>{};
+    for (final item in pedido.items) {
+      cantidades.update(item.productoId, (valor) => valor + item.cantidad,
+          ifAbsent: () => item.cantidad);
+    }
+    final inventarios = <DocumentReference<Map<String, dynamic>>, Inventario>{};
+    for (final productoId in cantidades.keys) {
+      final stockRef = _db.collection('inventario').doc(productoId);
+      final stock = (await tx.get(stockRef)).data();
+      if (stock == null) {
+        throw StateError('El producto $productoId requiere inventario.');
+      }
+      final producto =
+          (await tx.get(_db.collection('productos').doc(productoId))).data();
+      final item =
+          pedido.items.firstWhere((item) => item.productoId == productoId);
+      if (producto == null ||
+          producto['disponible'] != true ||
+          ((producto['precio'] as num) * 100).round() !=
+              item.precioUnitarioCentavos) {
+        throw StateError('El catálogo cambió. Actualiza el pedido.');
+      }
+      inventarios[stockRef] = Inventario.fromMap(stock, productoId: productoId);
+    }
+    for (final entrada in inventarios.entries) {
+      final cantidad = cantidades[entrada.key.id]!;
+      if (entrada.value.existencias < cantidad) {
+        throw StateError(
+            'No hay stock suficiente para el producto ${entrada.key.id}.');
+      }
+      _escribirMovimiento(
+        tx,
+        entrada.key,
+        entrada.value,
+        -cantidad,
+        entrada.value.stockMinimo,
+        TipoMovimientoInventario.venta,
+        pedidoId: pedido.id,
+      );
+    }
+  }
 
   Future<void> actualizarEstadoPedido(String id, String estado) async {
     final ref = _db.collection('pedidos').doc(id);

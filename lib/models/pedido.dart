@@ -4,6 +4,7 @@ import 'pedido_firestore.dart';
 /// Constantes de estado del pedido (misma secuencia del prototipo).
 class EstadoPedido {
   static const String pendiente = 'Pendiente';
+  static const String asignado = 'Asignado';
   static const String aceptado = 'Aceptado';
   static const String enPreparacion = 'En preparación';
   static const String listo = 'Listo';
@@ -11,9 +12,11 @@ class EstadoPedido {
   static const String entregado = 'Entregado';
   static const String rechazado = 'Rechazado';
   static const String cancelado = 'Cancelado';
+  static const String extraviado = 'Extraviado';
 
   static const nombres = {
     EstadoPedidoFirestore.pendiente: pendiente,
+    EstadoPedidoFirestore.asignado: asignado,
     EstadoPedidoFirestore.aceptado: aceptado,
     EstadoPedidoFirestore.enPreparacion: enPreparacion,
     EstadoPedidoFirestore.listo: listo,
@@ -21,22 +24,25 @@ class EstadoPedido {
     EstadoPedidoFirestore.entregado: entregado,
     EstadoPedidoFirestore.rechazado: rechazado,
     EstadoPedidoFirestore.cancelado: cancelado,
+    EstadoPedidoFirestore.extraviado: extraviado,
   };
 
   static EstadoPedidoFirestore paraFirestore(String estado) =>
       nombres.entries.singleWhere((elemento) => elemento.value == estado).key;
 
   static List<String> siguientes(String estado) => switch (estado) {
-        pendiente => [aceptado, rechazado, cancelado],
+        pendiente => [asignado, rechazado, cancelado],
+        asignado => [entregado, extraviado, cancelado],
         aceptado => [enPreparacion, cancelado],
         enPreparacion => [listo, cancelado],
         listo => [enCamino, cancelado],
-        enCamino => [entregado, cancelado],
+        enCamino => [entregado, extraviado, cancelado],
         _ => [],
       };
 
   static const List<String> secuencia = [
     pendiente,
+    asignado,
     aceptado,
     enPreparacion,
     listo,

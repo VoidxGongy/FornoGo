@@ -59,7 +59,9 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
             idsDomiciliarios.contains(candidatoDomiciliario)
         ? candidatoDomiciliario
         : null;
-    final estados = [pedido.estado, ...EstadoPedido.siguientes(pedido.estado)];
+    final puedeGestionar = pedido.estado != EstadoPedido.entregado &&
+        pedido.estado != EstadoPedido.cancelado &&
+        pedido.estado != EstadoPedido.extraviado;
     return Card(
       child: ExpansionTile(
         title: Text('Pedido #${pedido.id} · ${pedido.nombreCliente}'),
@@ -89,25 +91,11 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButtonFormField<String>(
-              key: ValueKey((pedido.id, pedido.estado)),
-              initialValue: pedido.estado,
-              decoration: const InputDecoration(labelText: 'Estado'),
-              items: estados
-                  .map((estado) =>
-                      DropdownMenuItem(value: estado, child: Text(estado)))
-                  .toList(),
-              onChanged: (estado) {
-                if (estado != null) {
-                  ejecutarOperacion(
-                          context,
-                          () =>
-                              tienda.actualizarEstadoPedido(pedido.id, estado))
-                      .then((_) {
-                    if (mounted) setState(() {});
-                  });
-                }
-              },
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.info_outline),
+              title: const Text('Estado del pedido'),
+              trailing: Chip(label: Text(pedido.estado)),
             ),
           ),
           Padding(
@@ -142,7 +130,7 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
             child: SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: domiciliarioSeleccionado == null
+                onPressed: !puedeGestionar || domiciliarioSeleccionado == null
                     ? null
                     : () async {
                         final asignado =
@@ -171,8 +159,65 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
               ),
             ),
           ),
+          if (puedeGestionar)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _actualizarIncidencia(
+                      pedido,
+                      '¿Cancelar este pedido?',
+                      'cancelar',
+                    ),
+                    icon: const Icon(Icons.cancel_outlined),
+                    label: const Text('Cancelar pedido'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _actualizarIncidencia(
+                      pedido,
+                      '¿Marcar este pedido como extraviado?',
+                      'extraviar',
+                    ),
+                    icon: const Icon(Icons.report_problem_outlined),
+                    label: const Text('Marcar extraviado'),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Future<void> _actualizarIncidencia(
+      Pedido pedido, String pregunta, String accion) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Actualizar pedido'),
+        content: Text(pregunta),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Volver'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    final actualizado = await ejecutarOperacion(
+      context,
+      () => accion == 'cancelar'
+          ? Tienda.instancia.cancelarPedido(pedido.id)
+          : Tienda.instancia.marcarPedidoExtraviado(pedido.id),
+    );
+    if (actualizado && mounted) setState(() {});
   }
 }

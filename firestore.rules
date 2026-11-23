@@ -101,15 +101,6 @@ service cloud.firestore {
           && d.totalCentavos == d.subtotalCentavos + d.domicilioCentavos;
       }
 
-      function transicion(actual, siguiente) {
-        return actual == siguiente
-          || (actual == 'pendiente' && siguiente in ['aceptado', 'rechazado', 'cancelado'])
-          || (actual == 'aceptado' && siguiente in ['enPreparacion', 'cancelado'])
-          || (actual == 'enPreparacion' && siguiente in ['listo', 'cancelado'])
-          || (actual == 'listo' && siguiente in ['enCamino', 'cancelado'])
-          || (actual == 'enCamino' && siguiente in ['entregado', 'cancelado']);
-      }
-
       allow read: if admin()
         || (rol('cliente') && resource.data.usuarioId == request.auth.uid)
         || (rol('domiciliario') && resource.data.domiciliarioId == request.auth.uid);
@@ -117,17 +108,22 @@ service cloud.firestore {
       allow update: if
         (admin() && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['estado', 'domiciliarioId'])
-          && transicion(resource.data.estado, request.resource.data.estado)
-          && (request.resource.data.domiciliarioId == resource.data.domiciliarioId
-              || (request.resource.data.domiciliarioId is string
+          && ((request.resource.data.estado == 'asignado'
+                && resource.data.estado in ['pendiente', 'asignado']
+                && request.resource.data.domiciliarioId is string
                 && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.rol == 'domiciliario'
-                && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.activo == true)))
+                && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.activo == true)
+              || (request.resource.data.domiciliarioId == resource.data.domiciliarioId
+                && request.resource.data.estado in ['cancelado', 'extraviado']
+                && resource.data.estado in [
+                  'pendiente', 'asignado', 'aceptado', 'enPreparacion', 'listo', 'enCamino'
+                ])))
         || (rol('domiciliario') && resource.data.domiciliarioId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['estado', 'metodoPago'])
           && request.resource.data.estado == 'entregado'
           && resource.data.estado in [
-            'pendiente', 'aceptado', 'enPreparacion', 'listo', 'enCamino'
+            'asignado', 'pendiente', 'aceptado', 'enPreparacion', 'listo', 'enCamino'
           ]
           && medioDePago(request.resource.data.metodoPago));
     }

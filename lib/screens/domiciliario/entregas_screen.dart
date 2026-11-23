@@ -30,10 +30,12 @@ class _EntregasScreenState extends State<EntregasScreen> {
             : <Pedido>[];
         final entregas = todas
             .where((pedido) => widget.mostrarCompletados
-                ? pedido.estado == EstadoPedido.entregado
+                ? pedido.estado == EstadoPedido.entregado ||
+                    pedido.estado == EstadoPedido.extraviado
                 : pedido.estado != EstadoPedido.entregado &&
                     pedido.estado != EstadoPedido.rechazado &&
-                    pedido.estado != EstadoPedido.cancelado)
+                    pedido.estado != EstadoPedido.cancelado &&
+                    pedido.estado != EstadoPedido.extraviado)
             .toList();
         return Scaffold(
           appBar: AppBar(
@@ -56,7 +58,8 @@ class _EntregasScreenState extends State<EntregasScreen> {
                     final puedeActualizar =
                         pedido.estado != EstadoPedido.entregado &&
                             pedido.estado != EstadoPedido.rechazado &&
-                            pedido.estado != EstadoPedido.cancelado;
+                            pedido.estado != EstadoPedido.cancelado &&
+                            pedido.estado != EstadoPedido.extraviado;
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),

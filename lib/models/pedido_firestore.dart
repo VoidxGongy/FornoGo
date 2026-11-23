@@ -4,6 +4,7 @@ import 'campos_firestore.dart';
 
 enum EstadoPedidoFirestore {
   pendiente,
+  asignado,
   aceptado,
   enPreparacion,
   listo,
@@ -11,6 +12,7 @@ enum EstadoPedidoFirestore {
   entregado,
   rechazado,
   cancelado,
+  extraviado,
 }
 
 enum MetodoPagoFirestore { efectivo, tarjeta, transferencia }
