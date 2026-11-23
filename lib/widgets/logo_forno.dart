@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class LogoForno extends StatelessWidget {
   const LogoForno({super.key, this.size = 72, this.soloIcono = false});

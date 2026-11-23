@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Identidad visual compartida por todas las pantallas móviles.
 class TemaFornoGO {
