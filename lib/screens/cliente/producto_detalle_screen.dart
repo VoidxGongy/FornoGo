@@ -1,7 +1,8 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../../models/producto.dart';
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../utils/formato_moneda.dart';
 import '../../widgets/imagen_producto.dart';
 
@@ -60,8 +61,12 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
           SizedBox(
             height: 50,
             child: FilledButton.icon(
-                onPressed: () {
-                  Tienda.instancia.agregarAlCarrito(producto, _cantidad);
+                onPressed: () async {
+                  final guardado = await ejecutarOperacion(
+                      context,
+                      () => Tienda.instancia
+                          .agregarAlCarrito(producto, _cantidad));
+                  if (!guardado || !context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       content: Text('Producto agregado al carrito')));
                 },

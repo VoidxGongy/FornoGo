@@ -1,7 +1,8 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../../models/pedido.dart';
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../utils/formato_moneda.dart';
 import '../../widgets/imagen_producto.dart';
 import '../../widgets/logo_forno.dart';
@@ -14,7 +15,7 @@ class PedidosAdminScreen extends StatefulWidget {
 }
 
 class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
-  final Map<int, int?> _seleccionesDomiciliario = {};
+  final Map<String, String?> _seleccionesDomiciliario = {};
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +47,7 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
   Widget _pedidoCard(Pedido pedido) {
     final tienda = Tienda.instancia;
     final domiciliarios = tienda.domiciliariosActivos();
-    final idsDomiciliarios = <int>{};
+    final idsDomiciliarios = <String>{};
     final opcionesDomiciliarios = domiciliarios
         .where((domiciliario) => idsDomiciliarios.add(domiciliario.id))
         .toList();
@@ -58,7 +59,7 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
             idsDomiciliarios.contains(candidatoDomiciliario)
         ? candidatoDomiciliario
         : null;
-    final estados = <String>{...EstadoPedido.secuencia, pedido.estado}.toList();
+    final estados = [pedido.estado, ...EstadoPedido.siguientes(pedido.estado)];
     return Card(
       child: ExpansionTile(
         title: Text('Pedido #${pedido.id} · ${pedido.nombreCliente}'),
@@ -89,6 +90,7 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: DropdownButtonFormField<String>(
+              key: ValueKey((pedido.id, pedido.estado)),
               initialValue: pedido.estado,
               decoration: const InputDecoration(labelText: 'Estado'),
               items: estados
@@ -97,15 +99,20 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
                   .toList(),
               onChanged: (estado) {
                 if (estado != null) {
-                  tienda.actualizarEstadoPedido(pedido.id, estado);
-                  setState(() {});
+                  ejecutarOperacion(
+                          context,
+                          () =>
+                              tienda.actualizarEstadoPedido(pedido.id, estado))
+                      .then((_) {
+                    if (mounted) setState(() {});
+                  });
                 }
               },
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: DropdownButtonFormField<int>(
+            child: DropdownButtonFormField<String>(
               initialValue: domiciliarioSeleccionado,
               decoration:
                   const InputDecoration(labelText: 'Domiciliario asignado'),
@@ -126,11 +133,15 @@ class _PedidosAdminScreenState extends State<PedidosAdminScreen> {
               child: FilledButton.icon(
                 onPressed: domiciliarioSeleccionado == null
                     ? null
-                    : () {
-                        final asignado = tienda.asignarDomiciliario(
-                          pedido.id,
-                          domiciliarioSeleccionado,
-                        );
+                    : () async {
+                        final asignado =
+                            await ejecutarOperacion(context, () async {
+                          await tienda.asignarDomiciliario(
+                            pedido.id,
+                            domiciliarioSeleccionado,
+                          );
+                        });
+                        if (!mounted) return;
                         if (asignado) {
                           setState(() {});
                           ScaffoldMessenger.of(context).showSnackBar(

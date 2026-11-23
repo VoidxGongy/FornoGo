@@ -1,6 +1,7 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../widgets/logo_forno.dart';
 import '../navegacion/rol_home_screen.dart';
 import 'registro_cliente_screen.dart';
@@ -27,27 +28,21 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _iniciarSesion() {
-    if (!_formKey.currentState!.validate()) return;
-
+  Future<void> _iniciarSesion() async {
+    if (_cargando || !_formKey.currentState!.validate()) return;
     setState(() => _cargando = true);
-    final correcto = Tienda.instancia.iniciarSesion(
-      _correoController.text.trim(),
-      _claveController.text,
-    );
+    final listo = await ejecutarOperacion(
+        context,
+        () => Tienda.instancia.iniciarSesion(
+              _correoController.text.trim(),
+              _claveController.text,
+            ));
+    if (!mounted) return;
     setState(() => _cargando = false);
-
-    if (!correcto) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Correo o contraseña incorrectos.')),
-      );
-      return;
+    if (listo) {
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const RolHomeScreen()));
     }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const RolHomeScreen()),
-    );
   }
 
   Future<void> _abrirRegistro() async {

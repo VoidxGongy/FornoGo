@@ -1,7 +1,7 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
-import '../../models/cliente.dart';
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../widgets/logo_forno.dart';
 
 /// Registro público disponible únicamente para clientes.
@@ -38,32 +38,23 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
         : null;
   }
 
-  void _registrar() {
-    if (!_formKey.currentState!.validate()) return;
+  bool _registrando = false;
 
-    final tienda = Tienda.instancia;
-    if (tienda.buscarClientePorCorreo(_correoController.text) != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ya existe un cliente con ese correo.')),
-      );
-      return;
-    }
-
-    tienda.agregarCliente(
-      Cliente(
-        id: 0,
-        nombre: _nombreController.text.trim(),
-        correo: _correoController.text.trim(),
-        telefono: _telefonoController.text.trim(),
-        hashClave: Tienda.hashAcademico(_claveController.text),
-        direccionPredeterminada: _direccionController.text.trim(),
-      ),
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cliente registrado correctamente.')),
-    );
-    Navigator.pop(context);
+  Future<void> _registrar() async {
+    if (_registrando || !_formKey.currentState!.validate()) return;
+    setState(() => _registrando = true);
+    final guardado = await ejecutarOperacion(
+        context,
+        () => Tienda.instancia.registrarCliente(
+              nombre: _nombreController.text.trim(),
+              correo: _correoController.text.trim(),
+              clave: _claveController.text,
+              telefono: _telefonoController.text.trim(),
+              direccion: _direccionController.text.trim(),
+            ));
+    if (!mounted) return;
+    setState(() => _registrando = false);
+    if (guardado) Navigator.pop(context);
   }
 
   @override
@@ -126,7 +117,7 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: _registrar,
+              onPressed: _registrando ? null : _registrar,
               child: const Text('Registrar cliente'),
             ),
           ],

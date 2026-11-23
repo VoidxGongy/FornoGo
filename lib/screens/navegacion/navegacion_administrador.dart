@@ -1,12 +1,12 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../widgets/barra_navegacion_inferior.dart';
 import '../administrador/domiciliarios_admin_screen.dart';
 import '../administrador/pedidos_admin_screen.dart';
 import '../administrador/productos_admin_screen.dart';
 import '../administrador/mas_admin_screen.dart';
-import '../inicio/login_screen.dart';
 
 class NavegacionAdministrador extends StatefulWidget {
   const NavegacionAdministrador({super.key});
@@ -19,11 +19,8 @@ class NavegacionAdministrador extends StatefulWidget {
 class _NavegacionAdministradorState extends State<NavegacionAdministrador> {
   int _indice = 0;
 
-  void _cerrarSesion() {
-    Tienda.instancia.cerrarSesion();
-    Navigator.pushAndRemoveUntil(context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
-  }
+  void _cerrarSesion() =>
+      ejecutarOperacion(context, Tienda.instancia.cerrarSesion);
 
   @override
   Widget build(BuildContext context) {

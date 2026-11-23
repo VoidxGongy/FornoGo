@@ -1,10 +1,10 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../../models/sesion.dart';
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../widgets/barra_navegacion_inferior.dart';
 import '../domiciliario/entregas_screen.dart';
-import '../inicio/login_screen.dart';
 import '../compartidos/perfil_screen.dart';
 
 class NavegacionDomiciliario extends StatefulWidget {
@@ -17,11 +17,8 @@ class NavegacionDomiciliario extends StatefulWidget {
 class _NavegacionDomiciliarioState extends State<NavegacionDomiciliario> {
   int _indice = 0;
 
-  void _cerrarSesion() {
-    Tienda.instancia.cerrarSesion();
-    Navigator.pushAndRemoveUntil(context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
-  }
+  void _cerrarSesion() =>
+      ejecutarOperacion(context, Tienda.instancia.cerrarSesion);
 
   @override
   Widget build(BuildContext context) {

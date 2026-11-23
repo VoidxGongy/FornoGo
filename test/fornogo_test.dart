@@ -34,8 +34,8 @@ void main() {
 
   test('Pedido conserva sus datos y estado en JSON', () {
     final pedido = Pedido(
-      id: 10,
-      clienteId: 2,
+      id: 'pedido-prueba',
+      clienteId: 'uid-cliente',
       nombreCliente: 'María García',
       telefono: '3100000000',
       direccion: 'Carrera 10 #20-30',

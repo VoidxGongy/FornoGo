@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
-import '../../services/preferencias.dart';
 import '../../services/tienda.dart';
 import '../../theme/tema_fornogo.dart';
 import '../../widgets/logo_forno.dart';
@@ -21,6 +19,7 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animacion;
   bool _listo = false;
+  bool _error = false;
 
   @override
   void initState() {
@@ -32,9 +31,12 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _cargarAplicacion() async {
-    await Preferencias.instancia.init();
-    await Tienda.instancia.cargarPersistencia();
-    await Future<void>.delayed(const Duration(milliseconds: 250));
+    try {
+      await Tienda.instancia.inicializar();
+    } catch (_) {
+      if (mounted) setState(() => _error = true);
+      return;
+    }
     if (!mounted) return;
     if (Tienda.instancia.sesion != null) {
       Navigator.pushReplacement(
@@ -75,13 +77,17 @@ class _SplashScreenState extends State<SplashScreen>
                                 color: TemaFornoGO.rojo,
                                 fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    Text(
-                        kIsWeb
-                            ? 'Demostración web · Usa datos de prueba'
-                            : 'Tu pizza favorita, hasta tu puerta',
+                    Text('Tu pizza favorita, hasta tu puerta',
                         style: Theme.of(context).textTheme.bodyLarge),
                     const SizedBox(height: 48),
-                    if (!_listo)
+                    if (_error)
+                      TextButton(
+                          onPressed: () {
+                            setState(() => _error = false);
+                            _cargarAplicacion();
+                          },
+                          child: const Text('Error de conexión. Reintentar'))
+                    else if (!_listo)
                       const CircularProgressIndicator()
                     else ...[
                       SizedBox(

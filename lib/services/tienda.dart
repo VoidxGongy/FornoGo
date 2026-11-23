@@ -1,661 +1,539 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
-import '../models/administrador.dart';
 import '../models/categoria.dart';
-import '../models/cliente.dart';
-import '../models/domiciliario.dart';
-import '../models/item_pedido.dart';
+import '../models/inventario.dart';
 import '../models/pedido.dart';
+import '../models/pedido_firestore.dart';
 import '../models/producto.dart';
 import '../models/producto_carrito.dart';
 import '../models/sesion.dart';
-import 'catalogo_firestore.dart';
-import 'preferencias.dart';
+import '../models/usuario.dart';
 
-/// Costo fijo de domicilio usado en el prototipo.
 const double kCostoDomicilio = 5000;
 
-///
-/// Tienda: punto único donde viven las LISTAS de Dart de FornoGO.
-///
-/// Las listas viven en memoria y se persisten con Preferencias
-/// (SharedPreferences + jsonEncode / jsonDecode).
-///
 class Tienda extends ChangeNotifier {
   Tienda._();
   static final Tienda instancia = Tienda._();
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
 
-  // ----------------------------------------------------------
-  // LISTAS PRINCIPALES (aquí se declara cada colección)
-  // ----------------------------------------------------------
+  final _sesiones = <StreamSubscription<dynamic>>[];
+  final _catalogo = <StreamSubscription<dynamic>>[];
+  final _azar = Random.secure();
+
   List<Producto> productos = [];
   List<Categoria> categorias = [];
   List<Pedido> pedidos = [];
-  List<Domiciliario> domiciliarios = [];
-  List<Cliente> clientes = [];
-  List<Administrador> administradores = [];
-  List<ProductoCarrito> carrito = [];
+  List<Usuario> domiciliarios = [];
+  Map<int, int> _cantidades = {};
+  Map<int, Inventario> inventario = {};
+  Usuario? perfil;
+  String? errorDeCarga;
 
-  Sesion? sesion;
-  String rutaLogo = 'assets/images/logo.png';
-  bool logoEsAsset = true;
+  Sesion? get sesion => perfil == null
+      ? null
+      : Sesion(rol: perfil!.rol.name, usuarioId: perfil!.uid);
 
-  bool _catalogoActualizado = false;
-  bool get catalogoActualizado => _catalogoActualizado;
+  List<ProductoCarrito> get carrito => [
+        for (final producto in productos)
+          if (_cantidades.containsKey(producto.id))
+            ProductoCarrito(
+              productoId: producto.id,
+              nombre: producto.nombre,
+              precioUnitario: producto.precio,
+              cantidad: _cantidades[producto.id]!,
+              rutaImagen: producto.rutaImagen,
+              esAsset: producto.esAsset,
+            ),
+      ];
 
-  int _siguienteProducto = 1;
-  int _siguienteCategoria = 1;
-  int _siguientePedido = 1;
-  int _siguienteDomiciliario = 1;
-  int _siguienteCliente = 1;
-  int _siguienteAdministrador = 1;
-
-  // Serializa los guardados para que una operación rápida (por ejemplo,
-  // pulsar varias veces "Agregar") no sobrescriba un guardado anterior que
-  // todavía esté en curso.
-  Future<void>? _guardadoPendiente;
-
-  /// Aviso académico: esto NO es autenticación segura de producción.
-  /// Solo evita guardar la clave exactamente como la escribió el usuario.
-  static String hashAcademico(String clave) {
-    return base64Encode(utf8.encode('fornogo|$clave'));
+  Future<void> inicializar() async {
+    if (_catalogo.isEmpty) {
+      _catalogo.addAll([
+        _db.collection('categorias').orderBy('id').snapshots().listen((datos) {
+          categorias = [
+            for (final doc in datos.docs)
+              Categoria.fromMap(doc.data(), documentoId: doc.id),
+          ];
+          notifyListeners();
+        }, onError: _informarError),
+        _db.collection('productos').orderBy('id').snapshots().listen((datos) {
+          productos = [
+            for (final doc in datos.docs)
+              Producto.fromMap(doc.data(), documentoId: doc.id),
+          ];
+          notifyListeners();
+        }, onError: _informarError),
+      ]);
+    }
+    final cuenta = await _auth.authStateChanges().first;
+    if (cuenta != null) {
+      try {
+        await _abrirSesion(cuenta.uid);
+      } on StateError {
+        await cerrarSesion();
+      }
+    }
   }
 
-  void _actualizarContadores() {
-    _siguienteProducto = _maxId(productos.map((p) => p.id)) + 1;
-    _siguienteCategoria = _maxId(categorias.map((c) => c.id)) + 1;
-    _siguientePedido = _maxId(pedidos.map((p) => p.id)) + 1;
-    _siguienteDomiciliario = _maxId(domiciliarios.map((d) => d.id)) + 1;
-    _siguienteCliente = _maxId(clientes.map((c) => c.id)) + 1;
-    _siguienteAdministrador = _maxId(administradores.map((a) => a.id)) + 1;
-  }
-
-  int _maxId(Iterable<int> ids) {
-    var maximo = 0;
-    for (final id in ids) {
-      if (id > maximo) maximo = id;
-    }
-    return maximo;
-  }
-
-  /// Recupera las listas desde SharedPreferences.
-  /// Si es la primera ejecución, carga la semilla y la guarda.
-  Future<void> cargarPersistencia() async {
-    final prefs = Preferencias.instancia;
-    productos = prefs.cargarProductos();
-    categorias = prefs.cargarCategorias();
-    pedidos = prefs.cargarPedidos();
-    clientes = prefs.cargarClientes();
-    administradores = prefs.cargarAdministradores();
-    domiciliarios = prefs.cargarDomiciliarios();
-    carrito = prefs.cargarCarrito();
-    sesion = prefs.cargarSesion();
-    rutaLogo = prefs.cargarLogoRuta();
-    logoEsAsset = prefs.cargarLogoEsAsset();
-
-    final primeraEjecucion = !prefs.yaInicializado();
-    if (primeraEjecucion) {
-      cargarSemillaSiVacia();
-    }
-
-    if (primeraEjecucion) {
-      await guardarCambios();
-    }
-    if (primeraEjecucion) {
-      await prefs.marcarInicializado();
-    }
-    if (kIsWeb) {
-      await _actualizarCatalogoWeb(prefs);
-    }
-    _actualizarContadores();
-  }
-
-  Future<void> _actualizarCatalogoWeb(Preferencias prefs) async {
-    _catalogoActualizado = false;
-    try {
-      final catalogo =
-          await cargarCatalogoFirestore().timeout(const Duration(seconds: 10));
-      categorias = catalogo.categorias;
-      productos = catalogo.productos;
-      _catalogoActualizado = true;
-    } on Exception catch (error) {
-      debugPrint('No se pudo cargar el catálogo de Firestore ($error)');
-      return;
-    }
-    await prefs.guardarCategorias(categorias);
-    await prefs.guardarProductos(productos);
-  }
-
-  /// Guarda TODAS las listas actuales. Usar después de agregar, editar o eliminar.
-  Future<void> guardarCambios() async {
-    final prefs = Preferencias.instancia;
-    await prefs.guardarProductos(productos);
-    await prefs.guardarCategorias(categorias);
-    await prefs.guardarPedidos(pedidos);
-    await prefs.guardarClientes(clientes);
-    await prefs.guardarAdministradores(administradores);
-    await prefs.guardarDomiciliarios(domiciliarios);
-    await prefs.guardarCarrito(carrito);
-    await prefs.guardarSesion(sesion);
-    await prefs.guardarLogo(ruta: rutaLogo, esAsset: logoEsAsset);
-  }
-
-  /// Notifica inmediatamente y serializa la persistencia en segundo plano.
-  void _persistir() {
+  void _informarError(Object error) {
+    errorDeCarga = 'No se pudieron sincronizar los datos con Firebase.';
+    debugPrint('FornoGO: $error');
     notifyListeners();
-    final anterior = _guardadoPendiente ?? Future<void>.value();
-    final siguiente = anterior.then((_) => guardarCambios());
-    late final Future<void> guardado;
-    guardado = siguiente.whenComplete(() {
-      if (identical(_guardadoPendiente, guardado)) {
-        _guardadoPendiente = null;
-      }
-    });
-    _guardadoPendiente = guardado;
-    unawaited(guardado);
   }
 
-  // ----------------------------------------------------------
-  // SEMILLA DE DEMOSTRACIÓN (llena las listas la primera vez)
-  // ----------------------------------------------------------
-  void cargarSemillaSiVacia() {
-    if (categorias.isNotEmpty || productos.isNotEmpty) {
-      _actualizarContadores();
-      return;
+  Future<void> _limpiarSesion() async {
+    final pendientes = List.of(_sesiones);
+    _sesiones.clear();
+    perfil = null;
+    pedidos = [];
+    domiciliarios = [];
+    inventario = {};
+    _cantidades = {};
+    errorDeCarga = null;
+    notifyListeners();
+    await Future.wait(pendientes.map((suscripcion) => suscripcion.cancel()));
+  }
+
+  Future<void> _abrirSesion(String uid) async {
+    await _limpiarSesion();
+    final documento = _db.collection('usuarios').doc(uid);
+    final datos =
+        (await documento.get(const GetOptions(source: Source.server))).data();
+    if (datos == null || datos['activo'] != true) {
+      throw StateError('La cuenta no tiene un perfil activo.');
     }
+    final usuario = Usuario.fromMap(datos, uid: uid);
+    perfil = usuario;
 
-    // AGREGAR categorías iniciales a la lista.
-    categorias.addAll([
-      Categoria(id: _siguienteCategoria++, nombre: 'Pizzas'),
-      Categoria(id: _siguienteCategoria++, nombre: 'Bebidas'),
-      Categoria(id: _siguienteCategoria++, nombre: 'Postres'),
-    ]);
-
-    // AGREGAR productos de ejemplo (las fotos reales se declaran en la Etapa 4).
-    productos.addAll([
-      Producto(
-        id: _siguienteProducto++,
-        nombre: 'Pizza Margarita',
-        descripcion: 'Tomate, mozzarella, albahaca',
-        precio: 28000,
-        categoriaId: 1,
-        rutaImagen: '',
-        esAsset: false,
-      ),
-      Producto(
-        id: _siguienteProducto++,
-        nombre: 'Pizza Pepperoni',
-        descripcion: 'Salsa de tomate, pepperoni, queso',
-        precio: 32000,
-        categoriaId: 1,
-        rutaImagen: '',
-        esAsset: false,
-      ),
-      Producto(
-        id: _siguienteProducto++,
-        nombre: 'Pizza Hawaiana',
-        descripcion: 'Jamón, piña y mozzarella',
-        precio: 30000,
-        categoriaId: 1,
-        rutaImagen: '',
-        esAsset: false,
-      ),
-      Producto(
-        id: _siguienteProducto++,
-        nombre: 'Pizza Cuatro Quesos',
-        descripcion: 'Mozzarella, cheddar, gouda, parmesano',
-        precio: 35000,
-        categoriaId: 1,
-        rutaImagen: '',
-        esAsset: false,
-      ),
-      Producto(
-        id: _siguienteProducto++,
-        nombre: 'Gaseosa 350ml',
-        descripcion: 'Coca-Cola, Pepsi o Sprite',
-        precio: 4000,
-        categoriaId: 2,
-        rutaImagen: '',
-        esAsset: false,
-      ),
-      Producto(
-        id: _siguienteProducto++,
-        nombre: 'Agua Mineral 500ml',
-        descripcion: 'Con o sin gas',
-        precio: 3000,
-        categoriaId: 2,
-        rutaImagen: '',
-        esAsset: false,
-      ),
-      Producto(
-        id: _siguienteProducto++,
-        nombre: 'Brownie de Chocolate',
-        descripcion: 'Con helado de vainilla',
-        precio: 12000,
-        categoriaId: 3,
-        rutaImagen: '',
-        esAsset: false,
-      ),
-      Producto(
-        id: _siguienteProducto++,
-        nombre: 'Tiramisú',
-        descripcion: 'Postre italiano con mascarpone',
-        precio: 14000,
-        categoriaId: 3,
-        rutaImagen: '',
-        esAsset: false,
-      ),
-    ]);
-
-    administradores.add(
-      Administrador(
-        id: _siguienteAdministrador++,
-        nombre: 'Administrador FornoGO',
-        correo: 'admin@fornogo.com',
-        hashClave: hashAcademico('admin123'),
-      ),
-    );
-  }
-
-  // ----------------------------------------------------------
-  // CATEGORÍAS
-  // ----------------------------------------------------------
-  Categoria? buscarCategoriaPorId(int id) {
-    for (final categoria in categorias) {
-      if (categoria.id == id) return categoria;
-    }
-    return null;
-  }
-
-  void agregarCategoria(Categoria categoria) {
-    categoria.id = _siguienteCategoria++;
-    categorias.add(categoria);
-    _persistir();
-  }
-
-  bool editarCategoria(Categoria actualizada) {
-    for (var i = 0; i < categorias.length; i++) {
-      if (categorias[i].id == actualizada.id) {
-        categorias[i] = actualizada;
-        _persistir();
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool eliminarCategoria(int id) {
-    // No se elimina si todavía hay productos que la usan.
-    for (final producto in productos) {
-      if (producto.categoriaId == id) return false;
-    }
-    final antes = categorias.length;
-    categorias.removeWhere((categoria) => categoria.id == id);
-    final eliminada = categorias.length < antes;
-    if (eliminada) _persistir();
-    return eliminada;
-  }
-
-  List<Categoria> categoriasActivas() {
-    final resultado = <Categoria>[];
-    for (final categoria in categorias) {
-      if (categoria.activa) resultado.add(categoria);
-    }
-    return resultado;
-  }
-
-  // ----------------------------------------------------------
-  // PRODUCTOS
-  // ----------------------------------------------------------
-  Producto? buscarProductoPorId(int id) {
-    for (final producto in productos) {
-      if (producto.id == id) return producto;
-    }
-    return null;
-  }
-
-  void agregarProducto(Producto producto) {
-    producto.id = _siguienteProducto++;
-    productos.add(producto);
-    _persistir();
-  }
-
-  bool editarProducto(Producto actualizado) {
-    for (var i = 0; i < productos.length; i++) {
-      if (productos[i].id == actualizado.id) {
-        productos[i] = actualizado;
-        _persistir();
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool eliminarProducto(int id) {
-    final antes = productos.length;
-    productos.removeWhere((producto) => producto.id == id);
-    final eliminado = productos.length < antes;
-    if (eliminado) _persistir();
-    return eliminado;
-  }
-
-  List<Producto> productosPorCategoria(int categoriaId) {
-    final resultado = <Producto>[];
-    for (final producto in productos) {
-      if (producto.categoriaId == categoriaId && producto.disponible) {
-        resultado.add(producto);
-      }
-    }
-    return resultado;
-  }
-
-  // ----------------------------------------------------------
-  // CLIENTES
-  // ----------------------------------------------------------
-  Cliente? buscarClientePorId(int id) {
-    for (final cliente in clientes) {
-      if (cliente.id == id) return cliente;
-    }
-    return null;
-  }
-
-  Cliente? buscarClientePorCorreo(String correo) {
-    final buscado = correo.trim().toLowerCase();
-    for (final cliente in clientes) {
-      if (cliente.correo.toLowerCase() == buscado) return cliente;
-    }
-    return null;
-  }
-
-  void agregarCliente(Cliente cliente) {
-    cliente.id = _siguienteCliente++;
-    clientes.add(cliente);
-    _persistir();
-  }
-
-  bool editarCliente(Cliente actualizado) {
-    for (var i = 0; i < clientes.length; i++) {
-      if (clientes[i].id == actualizado.id) {
-        clientes[i] = actualizado;
-        _persistir();
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // ----------------------------------------------------------
-  // ADMINISTRADORES Y DOMICILIARIOS
-  // ----------------------------------------------------------
-  Administrador? buscarAdministradorPorCorreo(String correo) {
-    final buscado = correo.trim().toLowerCase();
-    for (final admin in administradores) {
-      if (admin.correo.toLowerCase() == buscado) return admin;
-    }
-    return null;
-  }
-
-  Domiciliario? buscarDomiciliarioPorId(int id) {
-    for (final domiciliario in domiciliarios) {
-      if (domiciliario.id == id) return domiciliario;
-    }
-    return null;
-  }
-
-  Domiciliario? buscarDomiciliarioPorCorreo(String correo) {
-    final buscado = correo.trim().toLowerCase();
-    for (final domiciliario in domiciliarios) {
-      if (domiciliario.correo.toLowerCase() == buscado) return domiciliario;
-    }
-    return null;
-  }
-
-  void agregarDomiciliario(Domiciliario domiciliario) {
-    domiciliario.id = _siguienteDomiciliario++;
-    domiciliarios.add(domiciliario);
-    _persistir();
-  }
-
-  bool editarDomiciliario(Domiciliario actualizado) {
-    for (var i = 0; i < domiciliarios.length; i++) {
-      if (domiciliarios[i].id == actualizado.id) {
-        domiciliarios[i] = actualizado;
-        _persistir();
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool desactivarDomiciliario(int id) {
-    final domiciliario = buscarDomiciliarioPorId(id);
-    if (domiciliario == null) return false;
-    domiciliario.activo = false;
-    _persistir();
-    return true;
-  }
-
-  List<Domiciliario> domiciliariosActivos() {
-    final resultado = <Domiciliario>[];
-    for (final domiciliario in domiciliarios) {
-      if (domiciliario.activo) resultado.add(domiciliario);
-    }
-    return resultado;
-  }
-
-  // ----------------------------------------------------------
-  // CARRITO (List<ProductoCarrito>)
-  // ----------------------------------------------------------
-  void agregarAlCarrito(Producto producto, int cantidad) {
-    if (cantidad < 1) return;
-    for (final item in carrito) {
-      if (item.productoId == producto.id) {
-        item.cantidad += cantidad;
-        _persistir();
+    _sesiones.add(documento.snapshots().listen((doc) {
+      final datos = doc.data();
+      if (datos == null ||
+          datos['activo'] != true ||
+          datos['rol'] != usuario.rol.name) {
+        unawaited(cerrarSesion().catchError(_informarError));
         return;
       }
-    }
-    carrito.add(
-      ProductoCarrito(
-        productoId: producto.id,
-        nombre: producto.nombre,
-        precioUnitario: producto.precio,
-        cantidad: cantidad,
-        rutaImagen: producto.rutaImagen,
-        esAsset: producto.esAsset,
-      ),
-    );
-    _persistir();
-  }
+      perfil = Usuario.fromMap(datos, uid: uid);
+      notifyListeners();
+    }, onError: _informarError));
 
-  void cambiarCantidadCarrito(int productoId, int cantidad) {
-    if (cantidad < 1) {
-      eliminarDelCarrito(productoId);
-      return;
-    }
-    for (final item in carrito) {
-      if (item.productoId == productoId) {
-        item.cantidad = cantidad;
-        _persistir();
-        return;
+    final pedidosRef = _db.collection('pedidos');
+    final consulta = switch (usuario.rol) {
+      RolUsuario.cliente => pedidosRef.where('usuarioId', isEqualTo: uid),
+      RolUsuario.domiciliario =>
+        pedidosRef.where('domiciliarioId', isEqualTo: uid),
+      RolUsuario.administrador => pedidosRef,
+    };
+    _sesiones.add(consulta.snapshots().listen((datos) {
+      final recibidos = <Pedido>[];
+      for (final doc in datos.docs) {
+        if (doc.data()['esDemo'] == true) continue;
+        try {
+          recibidos.add(Pedido.fromFirestore(
+              PedidoFirestore.fromMap(doc.data(), id: doc.id)));
+        } catch (error) {
+          debugPrint('Pedido inválido (${doc.id}): $error');
+        }
       }
+      pedidos = recibidos..sort((a, b) => a.fecha.compareTo(b.fecha));
+      notifyListeners();
+    }, onError: _informarError));
+    if (usuario.rol == RolUsuario.cliente) {
+      _sesiones.add(_carritoRef(uid).snapshots().listen((doc) {
+        _cantidades = _leerCantidades(doc.data());
+        notifyListeners();
+      }, onError: _informarError));
+    }
+    if (usuario.rol == RolUsuario.administrador) {
+      _sesiones.addAll([
+        _db
+            .collection('usuarios')
+            .where('rol', isEqualTo: 'domiciliario')
+            .snapshots()
+            .listen((datos) {
+          domiciliarios = [
+            for (final doc in datos.docs)
+              Usuario.fromMap(doc.data(), uid: doc.id),
+          ];
+          notifyListeners();
+        }, onError: _informarError),
+        _db.collection('inventario').snapshots().listen((datos) {
+          inventario = {
+            for (final doc in datos.docs)
+              int.parse(doc.id):
+                  Inventario.fromMap(doc.data(), productoId: doc.id),
+          };
+          notifyListeners();
+        }, onError: _informarError),
+      ]);
+    }
+    notifyListeners();
+  }
+
+  Future<void> iniciarSesion(String correo, String clave) async {
+    await _auth.signInWithEmailAndPassword(email: correo, password: clave);
+    try {
+      await _abrirSesion(_auth.currentUser!.uid);
+    } catch (_) {
+      await cerrarSesion();
+      rethrow;
     }
   }
 
-  void eliminarDelCarrito(int productoId) {
-    carrito.removeWhere((item) => item.productoId == productoId);
-    _persistir();
+  Future<void> cerrarSesion() async {
+    await _auth.signOut();
+    await _limpiarSesion();
   }
 
-  void vaciarCarrito() {
-    carrito.clear();
-    _persistir();
-  }
-
-  double subtotalCarrito() {
-    var total = 0.0;
-    for (final item in carrito) {
-      total += item.subtotal;
-    }
-    return total;
-  }
-
-  double totalCarrito() => subtotalCarrito() + kCostoDomicilio;
-
-  // ----------------------------------------------------------
-  // PEDIDOS
-  // ----------------------------------------------------------
-  Pedido? buscarPedidoPorId(int id) {
-    for (final pedido in pedidos) {
-      if (pedido.id == id) return pedido;
-    }
-    return null;
-  }
-
-  Pedido confirmarPedido({
-    required Cliente cliente,
+  Future<void> registrarCliente({
+    required String nombre,
+    required String correo,
+    required String clave,
+    required String telefono,
     required String direccion,
-    String referencias = '',
-    required String metodoPago,
-  }) {
-    final items = <ItemPedido>[];
-    for (final item in carrito) {
-      items.add(
-        ItemPedido(
-          productoId: item.productoId,
-          nombre: item.nombre,
-          precioUnitario: item.precioUnitario,
-          cantidad: item.cantidad,
-        ),
-      );
-    }
+  }) async {
+    await _crearCuenta(_auth, nombre, correo, clave, telefono,
+        direccion: direccion, rol: RolUsuario.cliente);
+  }
 
-    final pedido = Pedido(
-      id: _siguientePedido++,
-      clienteId: cliente.id,
-      nombreCliente: cliente.nombre,
-      telefono: cliente.telefono,
-      direccion: direccion,
-      referencias: referencias,
-      items: items,
-      subtotal: subtotalCarrito(),
-      domicilio: kCostoDomicilio,
-      total: totalCarrito(),
-      metodoPago: metodoPago,
-      fecha: DateTime.now(),
+  Future<void> agregarDomiciliario({
+    required String nombre,
+    required String correo,
+    required String clave,
+    required String telefono,
+  }) async {
+    final app = await Firebase.initializeApp(
+      name: 'alta-domiciliario-${_azar.nextInt(1 << 30)}',
+      options: Firebase.app().options,
     );
-
-    pedidos.add(pedido);
-    vaciarCarrito();
-    return pedido;
+    try {
+      await _crearCuenta(
+          FirebaseAuth.instanceFor(app: app), nombre, correo, clave, telefono,
+          rol: RolUsuario.domiciliario);
+    } finally {
+      await app.delete();
+    }
   }
 
-  bool actualizarEstadoPedido(int id, String nuevoEstado) {
-    final pedido = buscarPedidoPorId(id);
-    if (pedido == null) return false;
-    pedido.estado = nuevoEstado;
-    _persistir();
-    return true;
+  Future<void> _crearCuenta(
+    FirebaseAuth auth,
+    String nombre,
+    String correo,
+    String clave,
+    String telefono, {
+    String? direccion,
+    required RolUsuario rol,
+  }) async {
+    final cuenta = (await auth.createUserWithEmailAndPassword(
+            email: correo, password: clave))
+        .user!;
+    final usuario = Usuario(
+        uid: cuenta.uid,
+        nombre: nombre,
+        correo: cuenta.email!,
+        telefono: telefono,
+        direccionPredeterminada: direccion,
+        rol: rol);
+    try {
+      await _db.collection('usuarios').doc(cuenta.uid).set({
+        ...usuario.toMap(),
+        'creadoEn': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (error) {
+      if (error.code == 'permission-denied') await cuenta.delete();
+      rethrow;
+    } finally {
+      await auth.signOut();
+    }
   }
 
-  bool asignarDomiciliario(int pedidoId, int domiciliarioId) {
-    final pedido = buscarPedidoPorId(pedidoId);
-    final domiciliario = buscarDomiciliarioPorId(domiciliarioId);
-    if (pedido == null || domiciliario == null || !domiciliario.activo) {
+  Future<void> editarDomiciliario(String uid, String nombre, String telefono) =>
+      _db
+          .collection('usuarios')
+          .doc(uid)
+          .update({'nombre': nombre, 'telefono': telefono});
+
+  Future<void> desactivarDomiciliario(String uid) =>
+      _db.collection('usuarios').doc(uid).update({'activo': false});
+
+  List<Usuario> domiciliariosActivos() =>
+      domiciliarios.where((usuario) => usuario.activo).toList();
+
+  Categoria? buscarCategoriaPorId(int id) =>
+      categorias.where((categoria) => categoria.id == id).firstOrNull;
+  Producto? buscarProductoPorId(int id) =>
+      productos.where((producto) => producto.id == id).firstOrNull;
+  List<Categoria> categoriasActivas() =>
+      categorias.where((c) => c.activa).toList();
+  List<Producto> productosPorCategoria(int id) =>
+      productos.where((p) => p.categoriaId == id && p.disponible).toList();
+
+  Future<void> agregarCategoria(Categoria categoria) async {
+    categoria.id = _azar.nextInt(1 << 30) + 1;
+    final ref = _db.collection('categorias').doc(categoria.documentoId);
+    await _db.runTransaction((tx) async {
+      if ((await tx.get(ref)).exists) {
+        throw StateError('Vuelve a intentar guardar.');
+      }
+      tx.set(ref, categoria.toMap());
+    });
+  }
+
+  Future<void> editarCategoria(Categoria categoria) => _db
+      .collection('categorias')
+      .doc(categoria.documentoId)
+      .update(categoria.toMap());
+  Future<bool> eliminarCategoria(int id) async {
+    if (productos
+        .any((producto) => producto.categoriaId == id && producto.disponible)) {
       return false;
     }
-    pedido.domiciliarioId = domiciliarioId;
-    if (pedido.estado == EstadoPedido.listo ||
-        pedido.estado == EstadoPedido.enPreparacion ||
-        pedido.estado == EstadoPedido.aceptado) {
-      pedido.estado = EstadoPedido.listo;
-    }
-    _persistir();
+    await _db.collection('categorias').doc('$id').update({'activa': false});
     return true;
   }
 
-  bool confirmarEntrega({
-    required int pedidoId,
-    required String metodoPago,
-    double? montoRecibido,
-  }) {
-    final pedido = buscarPedidoPorId(pedidoId);
-    if (pedido == null) return false;
-    pedido.metodoPago = metodoPago;
-    pedido.montoRecibido = montoRecibido;
-    pedido.estado = EstadoPedido.entregado;
-    _persistir();
-    return true;
-  }
-
-  List<Pedido> pedidosDeCliente(int clienteId) {
-    final resultado = <Pedido>[];
-    for (final pedido in pedidos) {
-      if (pedido.clienteId == clienteId) resultado.add(pedido);
-    }
-    return resultado;
-  }
-
-  List<Pedido> pedidosAsignadosA(int domiciliarioId) {
-    final resultado = <Pedido>[];
-    for (final pedido in pedidos) {
-      if (pedido.domiciliarioId == domiciliarioId &&
-          pedido.estado != EstadoPedido.entregado &&
-          pedido.estado != EstadoPedido.rechazado) {
-        resultado.add(pedido);
+  Future<void> agregarProducto(Producto producto) async {
+    producto.id = _azar.nextInt(1 << 30) + 1;
+    final ref = _db.collection('productos').doc(producto.documentoId);
+    await _db.runTransaction((tx) async {
+      if ((await tx.get(ref)).exists) {
+        throw StateError('Vuelve a intentar guardar.');
       }
-    }
-    return resultado;
+      tx.set(ref, producto.toMap());
+      tx.set(_db.collection('inventario').doc(ref.id), {
+        ...Inventario(productoId: ref.id, existencias: 0, stockMinimo: 0)
+            .toMap(),
+        'actualizadoEn': FieldValue.serverTimestamp(),
+      });
+    });
   }
 
-  List<Pedido> pedidosPorEstado(String estado) {
-    if (estado == 'Todos') return List<Pedido>.from(pedidos);
-    final resultado = <Pedido>[];
-    for (final pedido in pedidos) {
-      if (pedido.estado == estado) resultado.add(pedido);
-    }
-    return resultado;
+  Future<void> editarProducto(Producto producto) => _db
+      .collection('productos')
+      .doc(producto.documentoId)
+      .update(producto.toMap());
+  Future<void> eliminarProducto(int id) =>
+      _db.collection('productos').doc('$id').update({'disponible': false});
+
+  DocumentReference<Map<String, dynamic>> _carritoRef(String uid) =>
+      _db.collection('usuarios').doc(uid).collection('carrito').doc('actual');
+
+  Map<int, int> _leerCantidades(Map<String, dynamic>? datos) => {
+        for (final entrada
+            in (datos?['cantidades'] as Map<String, dynamic>? ?? {}).entries)
+          int.parse(entrada.key): entrada.value as int,
+      };
+
+  Future<void> _cambiarCarrito(void Function(Map<int, int>) cambiar) async {
+    final ref = _carritoRef(perfil!.uid);
+    await _db.runTransaction((tx) async {
+      final cantidades = _leerCantidades((await tx.get(ref)).data());
+      cambiar(cantidades);
+      tx.set(ref, {
+        'cantidades':
+            cantidades.map((id, cantidad) => MapEntry('$id', cantidad))
+      });
+    });
   }
 
-  // ----------------------------------------------------------
-  // SESIÓN
-  // ----------------------------------------------------------
-  bool iniciarSesion(String correo, String clave) {
-    final hash = hashAcademico(clave);
+  Future<void> agregarAlCarrito(Producto producto, int cantidad) =>
+      _cambiarCarrito((items) => items.update(
+          producto.id, (actual) => actual + cantidad,
+          ifAbsent: () => cantidad));
+  Future<void> cambiarCantidadCarrito(int id, int cantidad) => cantidad < 1
+      ? eliminarDelCarrito(id)
+      : _cambiarCarrito((items) => items[id] = cantidad);
+  Future<void> eliminarDelCarrito(int id) =>
+      _cambiarCarrito((items) => items.remove(id));
+  Future<void> vaciarCarrito() => _carritoRef(perfil!.uid).delete();
 
-    final admin = buscarAdministradorPorCorreo(correo);
-    if (admin != null && admin.hashClave == hash) {
-      sesion = Sesion(rol: Rol.administrador, usuarioId: admin.id);
-      _persistir();
-      return true;
-    }
+  double subtotalCarrito() =>
+      carrito.fold(0.0, (total, item) => total + item.subtotal);
+  double totalCarrito() => subtotalCarrito() + kCostoDomicilio;
 
-    final domiciliario = buscarDomiciliarioPorCorreo(correo);
-    if (domiciliario != null &&
-        domiciliario.activo &&
-        domiciliario.hashClave == hash) {
-      sesion = Sesion(rol: Rol.domiciliario, usuarioId: domiciliario.id);
-      _persistir();
-      return true;
-    }
+  List<Pedido> pedidosDeCliente(String uid) =>
+      pedidos.where((pedido) => pedido.clienteId == uid).toList();
 
-    final cliente = buscarClientePorCorreo(correo);
-    if (cliente != null && cliente.hashClave == hash) {
-      sesion = Sesion(rol: Rol.cliente, usuarioId: cliente.id);
-      _persistir();
-      return true;
-    }
-
-    return false;
+  Future<void> confirmarPedido({
+    required String direccion,
+    required String referencias,
+    required String metodoPago,
+  }) async {
+    final usuario = perfil!;
+    final carritoRef = _carritoRef(usuario.uid);
+    final pedidoRef = _db.collection('pedidos').doc();
+    await _db.runTransaction((tx) async {
+      final cantidades = _leerCantidades((await tx.get(carritoRef)).data());
+      if (cantidades.isEmpty) throw StateError('El carrito está vacío.');
+      final items = <ItemPedidoFirestore>[];
+      for (final entrada in cantidades.entries) {
+        final ref = _db.collection('productos').doc('${entrada.key}');
+        final datos = (await tx.get(ref)).data();
+        if (datos == null || datos['disponible'] != true) {
+          throw StateError('Retira los productos que ya no están disponibles.');
+        }
+        items.add(ItemPedidoFirestore(
+          productoId: ref.id,
+          nombreProducto: datos['nombre'] as String,
+          cantidad: entrada.value,
+          precioUnitarioCentavos: ((datos['precio'] as num) * 100).round(),
+        ));
+      }
+      final pedido = PedidoFirestore(
+        id: pedidoRef.id,
+        usuarioId: usuario.uid,
+        metodoPago: MetodoPagoFirestore.values.byName(metodoPago.toLowerCase()),
+        nombreCliente: usuario.nombre,
+        telefono: usuario.telefono ?? '',
+        direccion: direccion,
+        referencias: referencias,
+        items: items,
+        domicilioCentavos: (kCostoDomicilio * 100).round(),
+      );
+      tx.set(pedidoRef,
+          {...pedido.toMap(), 'fecha': FieldValue.serverTimestamp()});
+      tx.delete(carritoRef);
+    });
   }
 
-  void cerrarSesion() {
-    sesion = null;
-    // El carrito pertenece al dispositivo y debe sobrevivir al cierre de
-    // sesión. Vaciarlo aquí hacía que pareciera que nunca se había guardado.
-    _persistir();
+  Future<bool> asignarDomiciliario(
+      String pedidoId, String domiciliarioId) async {
+    await _db
+        .collection('pedidos')
+        .doc(pedidoId)
+        .update({'domiciliarioId': domiciliarioId});
+    return true;
+  }
+
+  Future<void> confirmarEntrega(
+          {required String pedidoId, required String metodoPago}) =>
+      _db.collection('pedidos').doc(pedidoId).update({
+        'estado': EstadoPedidoFirestore.entregado.name,
+        'metodoPago': metodoPago.toLowerCase(),
+      });
+
+  Future<void> actualizarEstadoPedido(String id, String estado) async {
+    final ref = _db.collection('pedidos').doc(id);
+    await _db.runTransaction((tx) async {
+      final datos = (await tx.get(ref)).data()!;
+      final pedido = PedidoFirestore.fromMap(datos, id: id);
+      final siguiente = EstadoPedido.paraFirestore(estado);
+      if (siguiente == pedido.estado) return;
+      if (!EstadoPedido.siguientes(EstadoPedido.nombres[pedido.estado]!)
+          .contains(estado)) {
+        throw StateError('El pedido cambió de estado. Actualiza la vista.');
+      }
+      final acepta = pedido.estado == EstadoPedidoFirestore.pendiente &&
+          siguiente == EstadoPedidoFirestore.aceptado;
+      final devuelve = siguiente == EstadoPedidoFirestore.cancelado &&
+          const {
+            EstadoPedidoFirestore.aceptado,
+            EstadoPedidoFirestore.enPreparacion,
+            EstadoPedidoFirestore.listo,
+            EstadoPedidoFirestore.enCamino,
+          }.contains(pedido.estado);
+      final cantidades = <String, int>{};
+      if (acepta || devuelve) {
+        for (final item in pedido.items) {
+          cantidades.update(item.productoId, (valor) => valor + item.cantidad,
+              ifAbsent: () => item.cantidad);
+        }
+      }
+      final inventarios =
+          <DocumentReference<Map<String, dynamic>>, Inventario>{};
+      for (final id in cantidades.keys) {
+        final stockRef = _db.collection('inventario').doc(id);
+        final stock = (await tx.get(stockRef)).data();
+        if (stock == null) {
+          throw StateError('El producto $id requiere inventario.');
+        }
+        inventarios[stockRef] = Inventario.fromMap(stock, productoId: id);
+      }
+      if (acepta) {
+        for (final item in pedido.items) {
+          final datos =
+              (await tx.get(_db.collection('productos').doc(item.productoId)))
+                  .data();
+          if (datos == null ||
+              datos['disponible'] != true ||
+              ((datos['precio'] as num) * 100).round() !=
+                  item.precioUnitarioCentavos) {
+            throw StateError(
+                'El catálogo cambió. Rechaza el pedido para que el cliente lo vuelva a solicitar.');
+          }
+        }
+      }
+      for (final entrada in inventarios.entries) {
+        final delta = cantidades[entrada.key.id]! * (acepta ? -1 : 1);
+        if (entrada.value.existencias + delta < 0) {
+          throw StateError(
+              'No hay stock suficiente para el producto ${entrada.key.id}.');
+        }
+        _escribirMovimiento(
+            tx,
+            entrada.key,
+            entrada.value,
+            delta,
+            entrada.value.stockMinimo,
+            acepta
+                ? TipoMovimientoInventario.venta
+                : TipoMovimientoInventario.devolucion,
+            pedidoId: id);
+      }
+      tx.update(ref, {'estado': siguiente.name});
+    });
+  }
+
+  Future<void> ajustarInventario(int id, int existencias, int minimo) async {
+    final ref = _db.collection('inventario').doc('$id');
+    await _db.runTransaction((tx) async {
+      final datos = (await tx.get(ref)).data();
+      final anterior = datos == null
+          ? Inventario(productoId: ref.id, existencias: 0, stockMinimo: 0)
+          : Inventario.fromMap(datos, productoId: ref.id);
+      _escribirMovimiento(tx, ref, anterior, existencias - anterior.existencias,
+          minimo, TipoMovimientoInventario.ajuste);
+    });
+  }
+
+  void _escribirMovimiento(
+      Transaction tx,
+      DocumentReference<Map<String, dynamic>> ref,
+      Inventario anterior,
+      int delta,
+      int minimo,
+      TipoMovimientoInventario tipo,
+      {String? pedidoId}) {
+    tx.set(ref, {
+      ...Inventario(
+              productoId: ref.id,
+              existencias: anterior.existencias + delta,
+              stockMinimo: minimo)
+          .toMap(),
+      'actualizadoEn': FieldValue.serverTimestamp(),
+    });
+    if (delta == 0) return;
+    final movimientos = ref.collection('movimientos');
+    final movimientoRef = pedidoId == null
+        ? movimientos.doc()
+        : movimientos.doc('${tipo.name}_$pedidoId');
+    final movimiento = MovimientoInventario(
+      id: movimientoRef.id,
+      productoId: ref.id,
+      tipo: tipo,
+      cantidadDelta: delta,
+      existenciasAnteriores: anterior.existencias,
+      pedidoId: pedidoId,
+      usuarioId: perfil!.uid,
+    );
+    tx.set(movimientoRef,
+        {...movimiento.toMap(), 'fecha': FieldValue.serverTimestamp()});
   }
 }

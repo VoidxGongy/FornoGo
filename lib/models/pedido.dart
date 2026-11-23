@@ -1,4 +1,5 @@
 import 'item_pedido.dart';
+import 'pedido_firestore.dart';
 
 /// Constantes de estado del pedido (misma secuencia del prototipo).
 class EstadoPedido {
@@ -9,6 +10,30 @@ class EstadoPedido {
   static const String enCamino = 'En camino';
   static const String entregado = 'Entregado';
   static const String rechazado = 'Rechazado';
+  static const String cancelado = 'Cancelado';
+
+  static const nombres = {
+    EstadoPedidoFirestore.pendiente: pendiente,
+    EstadoPedidoFirestore.aceptado: aceptado,
+    EstadoPedidoFirestore.enPreparacion: enPreparacion,
+    EstadoPedidoFirestore.listo: listo,
+    EstadoPedidoFirestore.enCamino: enCamino,
+    EstadoPedidoFirestore.entregado: entregado,
+    EstadoPedidoFirestore.rechazado: rechazado,
+    EstadoPedidoFirestore.cancelado: cancelado,
+  };
+
+  static EstadoPedidoFirestore paraFirestore(String estado) =>
+      nombres.entries.singleWhere((elemento) => elemento.value == estado).key;
+
+  static List<String> siguientes(String estado) => switch (estado) {
+        pendiente => [aceptado, rechazado, cancelado],
+        aceptado => [enPreparacion, cancelado],
+        enPreparacion => [listo, cancelado],
+        listo => [enCamino, cancelado],
+        enCamino => [entregado, cancelado],
+        _ => [],
+      };
 
   static const List<String> secuencia = [
     pendiente,
@@ -29,8 +54,8 @@ class MetodoPago {
 
 /// Pedido confirmado por un cliente.
 class Pedido {
-  int id;
-  int clienteId;
+  String id;
+  String clienteId;
   String nombreCliente;
   String telefono;
   String direccion;
@@ -41,7 +66,7 @@ class Pedido {
   double total;
   String metodoPago;
   String estado;
-  int? domiciliarioId;
+  String? domiciliarioId;
   DateTime fecha;
   double? montoRecibido;
 
@@ -62,6 +87,39 @@ class Pedido {
     required this.fecha,
     this.montoRecibido,
   });
+
+  factory Pedido.fromFirestore(PedidoFirestore datos) => Pedido(
+        id: datos.id,
+        clienteId: datos.usuarioId,
+        nombreCliente: datos.nombreCliente,
+        telefono: datos.telefono,
+        direccion: datos.direccion,
+        referencias: datos.referencias ?? '',
+        items: [
+          for (final item in datos.items)
+            ItemPedido(
+              productoId: int.parse(item.productoId),
+              nombre: item.nombreProducto,
+              precioUnitario: item.precioUnitarioCentavos / 100,
+              cantidad: item.cantidad,
+            ),
+        ],
+        subtotal: datos.subtotalCentavos / 100,
+        domicilio: datos.domicilioCentavos / 100,
+        total: datos.totalCentavos / 100,
+        metodoPago: switch (datos.metodoPago) {
+          MetodoPagoFirestore.efectivo => MetodoPago.efectivo,
+          MetodoPagoFirestore.tarjeta => MetodoPago.tarjeta,
+          MetodoPagoFirestore.transferencia => MetodoPago.transferencia,
+        },
+        estado: EstadoPedido.nombres[datos.estado]!,
+        domiciliarioId: datos.domiciliarioId,
+        fecha:
+            datos.fecha ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+        montoRecibido: datos.montoRecibidoCentavos == null
+            ? null
+            : datos.montoRecibidoCentavos! / 100,
+      );
 
   Map<String, dynamic> toJson() {
     return {
@@ -87,8 +145,8 @@ class Pedido {
   factory Pedido.fromJson(Map<String, dynamic> json) {
     final listaItems = json['items'] as List<dynamic>? ?? [];
     return Pedido(
-      id: json['id'] as int,
-      clienteId: json['clienteId'] as int,
+      id: json['id'].toString(),
+      clienteId: json['clienteId'].toString(),
       nombreCliente: json['nombreCliente'] as String,
       telefono: json['telefono'] as String,
       direccion: json['direccion'] as String,
@@ -101,7 +159,7 @@ class Pedido {
       total: (json['total'] as num).toDouble(),
       metodoPago: json['metodoPago'] as String,
       estado: json['estado'] as String? ?? EstadoPedido.pendiente,
-      domiciliarioId: json['domiciliarioId'] as int?,
+      domiciliarioId: json['domiciliarioId']?.toString(),
       fecha: DateTime.parse(json['fecha'] as String),
       montoRecibido: (json['montoRecibido'] as num?)?.toDouble(),
     );

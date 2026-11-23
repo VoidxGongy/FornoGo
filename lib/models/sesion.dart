@@ -1,8 +1,8 @@
-/// Sesión local del usuario que inició sesión en este dispositivo.
+/// Identidad y rol del perfil autenticado con Firebase.
 class Sesion {
   /// Valores esperados: cliente, administrador, domiciliario.
   String rol;
-  int usuarioId;
+  String usuarioId;
 
   Sesion({
     required this.rol,
@@ -19,7 +19,7 @@ class Sesion {
   factory Sesion.fromJson(Map<String, dynamic> json) {
     return Sesion(
       rol: json['rol'] as String,
-      usuarioId: json['usuarioId'] as int,
+      usuarioId: json['usuarioId'] as String,
     );
   }
 }

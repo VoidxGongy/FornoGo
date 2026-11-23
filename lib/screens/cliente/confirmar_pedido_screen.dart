@@ -1,11 +1,8 @@
-import 'package:flutter/foundation.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/material.dart';
 
-import '../../models/cliente.dart';
 import '../../models/pedido.dart';
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../utils/formato_moneda.dart';
 
 class ConfirmarPedidoScreen extends StatefulWidget {
@@ -24,15 +21,9 @@ class _ConfirmarPedidoScreenState extends State<ConfirmarPedidoScreen> {
   @override
   void initState() {
     super.initState();
-    final cliente = _cliente;
+    final cliente = Tienda.instancia.perfil;
     _direccion =
         TextEditingController(text: cliente?.direccionPredeterminada ?? '');
-  }
-
-  Cliente? get _cliente {
-    final sesion = Tienda.instancia.sesion;
-    if (sesion == null) return null;
-    return Tienda.instancia.buscarClientePorId(sesion.usuarioId);
   }
 
   @override
@@ -42,32 +33,23 @@ class _ConfirmarPedidoScreenState extends State<ConfirmarPedidoScreen> {
     super.dispose();
   }
 
-  Future<void> _abrirWhatsApp() async {
-    final uri = Uri.parse(
-        'https://wa.me/573118965528?text=Hola%20FornoGO,%20quiero%20confirmar%20una%20transferencia');
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
-        mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo abrir WhatsApp.')));
-    }
-  }
+  bool _confirmando = false;
 
-  void _confirmar() {
-    if (!_formKey.currentState!.validate()) return;
-    final cliente = _cliente;
-    if (cliente == null || Tienda.instancia.carrito.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('No hay cliente o productos para confirmar.')));
-      return;
-    }
-    Tienda.instancia.confirmarPedido(
-      cliente: cliente,
-      direccion: _direccion.text.trim(),
-      referencias: _referencias.text.trim(),
-      metodoPago: _metodoPago,
-    );
+  Future<void> _confirmar() async {
+    if (_confirmando || !_formKey.currentState!.validate()) return;
+    setState(() => _confirmando = true);
+    final guardado = await ejecutarOperacion(
+        context,
+        () => Tienda.instancia.confirmarPedido(
+              direccion: _direccion.text.trim(),
+              referencias: _referencias.text.trim(),
+              metodoPago: _metodoPago,
+            ));
+    if (!mounted) return;
+    setState(() => _confirmando = false);
+    if (!guardado) return;
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pedido confirmado correctamente.')));
+        const SnackBar(content: Text('Pedido enviado para confirmación.')));
     Navigator.pop(context);
   }
 
@@ -81,11 +63,6 @@ class _ConfirmarPedidoScreenState extends State<ConfirmarPedidoScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            if (kIsWeb) ...[
-              const Text(
-                  'Pedido de demostración. Se guarda en este navegador.'),
-              const SizedBox(height: 12),
-            ],
             Text('Total: ${formatoPesosColombianos(tienda.totalCarrito())}',
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
@@ -116,39 +93,10 @@ class _ConfirmarPedidoScreenState extends State<ConfirmarPedidoScreen> {
                 ],
                 onChanged: (v) =>
                     setState(() => _metodoPago = v ?? MetodoPago.efectivo)),
-            if (!kIsWeb && _metodoPago == MetodoPago.transferencia) ...[
-              const SizedBox(height: 16),
-              Card(
-                  child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Datos bancarios',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            const Text(
-                                'Banco FornoGO\nCuenta de ahorros: 123-456-789\nTitular: FornoGO S.A.S.'),
-                            TextButton.icon(
-                                onPressed: () {
-                                  Clipboard.setData(const ClipboardData(
-                                      text:
-                                          'Banco FornoGO - Cuenta 123-456-789'));
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('Datos copiados.')));
-                                },
-                                icon: const Icon(Icons.copy),
-                                label: const Text('Copiar datos')),
-                            OutlinedButton.icon(
-                                onPressed: _abrirWhatsApp,
-                                icon: const Icon(Icons.chat),
-                                label: const Text(
-                                    'Enviar comprobante por WhatsApp'))
-                          ]))),
-            ],
             const SizedBox(height: 24),
             FilledButton(
-                onPressed: _confirmar, child: const Text('Confirmar pedido')),
+                onPressed: _confirmando ? null : _confirmar,
+                child: const Text('Confirmar pedido')),
           ],
         ),
       ),

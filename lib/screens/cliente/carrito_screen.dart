@@ -1,11 +1,11 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../utils/formato_moneda.dart';
 import '../../widgets/imagen_producto.dart';
 import '../../widgets/logo_forno.dart';
 import 'confirmar_pedido_screen.dart';
-import '../inicio/login_screen.dart';
 
 class CarritoScreen extends StatefulWidget {
   const CarritoScreen({super.key});
@@ -124,10 +124,8 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                   const TextStyle(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 12),
                           OutlinedButton(
-                              onPressed: () {
-                                tienda.vaciarCarrito();
-                                setState(() {});
-                              },
+                              onPressed: () => ejecutarOperacion(
+                                  context, tienda.vaciarCarrito),
                               child: const Text('Vaciar carrito')),
                           FilledButton(
                             onPressed: () async {
@@ -151,16 +149,10 @@ class _CarritoScreenState extends State<CarritoScreen> {
   }
 
   void _cambiar(int id, int cantidad) {
-    Tienda.instancia.cambiarCantidadCarrito(id, cantidad);
-    setState(() {});
+    ejecutarOperacion(
+        context, () => Tienda.instancia.cambiarCantidadCarrito(id, cantidad));
   }
 
-  void _cerrarSesion() {
-    Tienda.instancia.cerrarSesion();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (_) => false,
-    );
-  }
+  void _cerrarSesion() =>
+      ejecutarOperacion(context, Tienda.instancia.cerrarSesion);
 }

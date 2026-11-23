@@ -2,12 +2,131 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+    function rol(nombre) {
+      return request.auth != null && perfil().activo == true && perfil().rol == nombre;
+    }
+    function propio(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    function admin() { return rol('administrador'); }
+
+    function medioDePago(valor) {
+      return valor in ['efectivo', 'tarjeta', 'transferencia'];
+    }
+
+    match /usuarios/{uid} {
+      allow get: if propio(uid) || admin();
+      allow list: if admin();
+      allow create: if request.resource.data.keys().hasOnly([
+          'nombre', 'correo', 'telefono', 'direccionPredeterminada',
+          'rol', 'activo', 'creadoEn'
+        ]) && request.resource.data.activo == true
+        && request.resource.data.nombre is string
+        && request.resource.data.correo is string
+        && request.resource.data.creadoEn == request.time
+        && ((propio(uid) && request.resource.data.rol == 'cliente'
+              && request.resource.data.correo == request.auth.token.email)
+            || (admin() && request.resource.data.rol == 'domiciliario'));
+      allow update: if admin() && resource.data.rol == 'domiciliario'
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['nombre', 'telefono', 'activo'])
+        && request.resource.data.nombre is string && request.resource.data.activo is bool;
+
+      match /carrito/actual {
+        allow read, delete: if propio(uid) && rol('cliente');
+        allow create, update: if propio(uid) && rol('cliente')
+          && request.resource.data.keys().hasOnly(['cantidades'])
+          && request.resource.data.cantidades is map;
+      }
+    }
+
     match /categorias/{id} {
       allow read: if true;
+      allow create, update: if admin()
+        && request.resource.data.id is int
+        && request.resource.data.nombre is string
+        && request.resource.data.activa is bool;
     }
 
     match /productos/{id} {
       allow read: if true;
+      allow create, update: if admin()
+        && request.resource.data.id is int
+        && request.resource.data.categoriaId is int
+        && (request.resource.data.precio is int || request.resource.data.precio is float) && request.resource.data.precio >= 0
+        && request.resource.data.disponible is bool
+        && request.resource.data.nombre is string;
+    }
+
+    match /inventario/{productoId} {
+      allow read: if admin();
+      allow create, update: if admin()
+        && request.resource.data.existencias is int && request.resource.data.existencias >= 0
+        && request.resource.data.stockMinimo is int && request.resource.data.stockMinimo >= 0
+        && request.resource.data.stockBajo ==
+          (request.resource.data.existencias <= request.resource.data.stockMinimo)
+        && request.resource.data.actualizadoEn == request.time;
+
+      match /movimientos/{movimientoId} {
+        allow read: if admin();
+        allow create: if admin()
+          && request.resource.data.usuarioId == request.auth.uid
+          && request.resource.data.fecha == request.time
+          && request.resource.data.cantidadDelta is int
+          && request.resource.data.cantidadDelta != 0
+          && request.resource.data.existenciasResultantes ==
+            request.resource.data.existenciasAnteriores + request.resource.data.cantidadDelta
+          && request.resource.data.existenciasResultantes >= 0;
+      }
+    }
+
+    match /pedidos/{id} {
+      function pedidoNuevo(d) {
+        return d.keys().hasOnly([
+          'usuarioId', 'domiciliarioId', 'estado', 'metodoPago', 'fecha',
+          'nombreCliente', 'telefono', 'direccion', 'referencias', 'items',
+          'moneda', 'subtotalCentavos', 'domicilioCentavos', 'totalCentavos',
+          'montoRecibidoCentavos'
+        ]) && d.usuarioId == request.auth.uid && d.domiciliarioId == null
+          && d.estado == 'pendiente' && d.fecha == request.time
+          && d.montoRecibidoCentavos == null && medioDePago(d.metodoPago)
+          && d.items is list && d.items.size() > 0
+          && d.nombreCliente is string && d.telefono is string
+          && d.direccion is string && d.direccion.size() > 0
+          && d.moneda == 'COP' && d.subtotalCentavos is int && d.subtotalCentavos >= 0
+          && d.domicilioCentavos == 500000
+          && d.totalCentavos == d.subtotalCentavos + d.domicilioCentavos;
+      }
+
+      function transicion(actual, siguiente) {
+        return actual == siguiente
+          || (actual == 'pendiente' && siguiente in ['aceptado', 'rechazado', 'cancelado'])
+          || (actual == 'aceptado' && siguiente in ['enPreparacion', 'cancelado'])
+          || (actual == 'enPreparacion' && siguiente in ['listo', 'cancelado'])
+          || (actual == 'listo' && siguiente in ['enCamino', 'cancelado'])
+          || (actual == 'enCamino' && siguiente in ['entregado', 'cancelado']);
+      }
+
+      allow read: if admin()
+        || (rol('cliente') && resource.data.usuarioId == request.auth.uid)
+        || (rol('domiciliario') && resource.data.domiciliarioId == request.auth.uid);
+      allow create: if rol('cliente') && pedidoNuevo(request.resource.data);
+      allow update: if
+        (admin() && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['estado', 'domiciliarioId'])
+          && transicion(resource.data.estado, request.resource.data.estado)
+          && (request.resource.data.domiciliarioId == resource.data.domiciliarioId
+              || (request.resource.data.domiciliarioId is string
+                && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.rol == 'domiciliario'
+                && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.activo == true)))
+        || (rol('domiciliario') && resource.data.domiciliarioId == request.auth.uid
+          && resource.data.estado == 'enCamino' && request.resource.data.estado == 'entregado'
+          && medioDePago(request.resource.data.metodoPago)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['estado', 'metodoPago']));
     }
   }
 }

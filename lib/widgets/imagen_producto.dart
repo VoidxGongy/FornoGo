@@ -1,7 +1,4 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 /// Muestra la foto de un producto: recurso de assets o archivo copiado en el dispositivo.
 class ImagenProducto extends StatelessWidget {
@@ -54,19 +51,20 @@ class ImagenProducto extends StatelessWidget {
       );
     }
 
-    if (kIsWeb) return _fallback();
-
-    final archivo = File(ruta);
-    if (!archivo.existsSync()) return _fallback();
-
-    return Image.file(
-      archivo,
-      width: width,
-      height: height,
-      fit: fit,
-      semanticLabel: nombreProducto,
-      errorBuilder: (_, __, ___) => _fallback(),
-    );
+    final datos = Uri.tryParse(ruta)?.data;
+    if (datos == null || !datos.mimeType.startsWith('image/')) {
+      return _fallback();
+    }
+    try {
+      return Image.memory(datos.contentAsBytes(),
+          width: width,
+          height: height,
+          fit: fit,
+          semanticLabel: nombreProducto,
+          errorBuilder: (_, __, ___) => _fallback());
+    } on FormatException {
+      return _fallback();
+    }
   }
 
   /// Si el archivo no existe o falla la carga, se muestra una imagen de reemplazo.

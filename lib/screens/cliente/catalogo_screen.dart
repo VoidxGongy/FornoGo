@@ -1,13 +1,12 @@
-import 'package:flutter/foundation.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../../models/categoria.dart';
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../theme/tema_fornogo.dart';
 import '../../widgets/imagen_producto.dart';
 import '../../widgets/logo_forno.dart';
 import '../../utils/formato_moneda.dart';
-import '../inicio/login_screen.dart';
 import 'producto_detalle_screen.dart';
 
 class CatalogoScreen extends StatefulWidget {
@@ -108,11 +107,7 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                             icon: const Icon(Icons.close),
                           ),
                   ))),
-          if (kIsWeb && !tienda.catalogoActualizado)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Se muestra la copia local del catálogo.'),
-            ),
+          if (tienda.errorDeCarga case final error?) Text(error),
           _filtro(categorias),
           Expanded(
             child: productos.isEmpty
@@ -181,9 +176,17 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
                                                       BorderRadius.circular(12),
                                                 ),
                                               ),
-                                              onPressed: () {
-                                                tienda.agregarAlCarrito(
-                                                    producto, 1);
+                                              onPressed: () async {
+                                                final guardado =
+                                                    await ejecutarOperacion(
+                                                        context,
+                                                        () => tienda
+                                                            .agregarAlCarrito(
+                                                                producto, 1));
+                                                if (!guardado ||
+                                                    !context.mounted) {
+                                                  return;
+                                                }
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(SnackBar(
                                                         content: Text(
@@ -207,14 +210,8 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
     );
   }
 
-  void _cerrarSesion(BuildContext context) {
-    Tienda.instancia.cerrarSesion();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (_) => false,
-    );
-  }
+  void _cerrarSesion(BuildContext context) =>
+      ejecutarOperacion(context, Tienda.instancia.cerrarSesion);
 
   Widget _filtro(List<Categoria> categorias) {
     return SingleChildScrollView(

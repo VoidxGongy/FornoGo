@@ -1,6 +1,5 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
-import '../../models/sesion.dart';
 import '../../services/tienda.dart';
 import '../../theme/tema_fornogo.dart';
 import '../../widgets/logo_forno.dart';
@@ -12,45 +11,8 @@ class PerfilScreen extends StatelessWidget {
   final String rol;
   final VoidCallback cerrarSesion;
 
-  String _nombre() {
-    final tienda = Tienda.instancia;
-    final id = tienda.sesion?.usuarioId;
-    if (id == null) return 'Usuario FornoGO';
-    if (rol == Rol.cliente) {
-      for (final cliente in tienda.clientes) {
-        if (cliente.id == id) return cliente.nombre;
-      }
-    } else if (rol == Rol.domiciliario) {
-      for (final domiciliario in tienda.domiciliarios) {
-        if (domiciliario.id == id) return domiciliario.nombre;
-      }
-    } else {
-      for (final admin in tienda.administradores) {
-        if (admin.id == id) return admin.nombre;
-      }
-    }
-    return 'Usuario FornoGO';
-  }
-
-  String _correo() {
-    final tienda = Tienda.instancia;
-    final id = tienda.sesion?.usuarioId;
-    if (id == null) return '';
-    if (rol == Rol.cliente) {
-      for (final cliente in tienda.clientes) {
-        if (cliente.id == id) return cliente.correo;
-      }
-    } else if (rol == Rol.domiciliario) {
-      for (final domiciliario in tienda.domiciliarios) {
-        if (domiciliario.id == id) return domiciliario.correo;
-      }
-    } else {
-      for (final admin in tienda.administradores) {
-        if (admin.id == id) return admin.correo;
-      }
-    }
-    return '';
-  }
+  String _nombre() => Tienda.instancia.perfil?.nombre ?? 'Usuario FornoGO';
+  String _correo() => Tienda.instancia.perfil?.correo ?? '';
 
   @override
   Widget build(BuildContext context) {

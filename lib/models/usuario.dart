@@ -7,6 +7,7 @@ enum RolUsuario { cliente, administrador, domiciliario }
 /// Perfil en usuarios/{uid}. Firebase Auth administra las credenciales.
 class Usuario {
   final String uid;
+  String get id => uid;
   final String nombre;
   final String correo;
   final String? telefono;

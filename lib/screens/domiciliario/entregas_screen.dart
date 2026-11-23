@@ -1,8 +1,9 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import '../../models/pedido.dart';
 import '../../models/sesion.dart';
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../utils/formato_moneda.dart';
 import '../../widgets/logo_forno.dart';
 
@@ -28,7 +29,8 @@ class _EntregasScreenState extends State<EntregasScreen> {
         .where((pedido) => widget.mostrarCompletados
             ? pedido.estado == EstadoPedido.entregado
             : pedido.estado != EstadoPedido.entregado &&
-                pedido.estado != EstadoPedido.rechazado)
+                pedido.estado != EstadoPedido.rechazado &&
+                pedido.estado != EstadoPedido.cancelado)
         .toList();
     return Scaffold(
       appBar: AppBar(
@@ -57,7 +59,9 @@ class _EntregasScreenState extends State<EntregasScreen> {
                     isThreeLine: true,
                     trailing: IconButton(
                         icon: const Icon(Icons.check_circle_outline),
-                        onPressed: () => _confirmar(pedido)),
+                        onPressed: pedido.estado == EstadoPedido.enCamino
+                            ? () => _confirmar(pedido)
+                            : null),
                   ),
                 );
               },
@@ -94,10 +98,13 @@ class _EntregasScreenState extends State<EntregasScreen> {
                 ],
               )),
     );
-    if (confirmado == true) {
-      Tienda.instancia
-          .confirmarEntrega(pedidoId: pedido.id, metodoPago: metodo);
-      setState(() {});
+    if (confirmado == true && mounted) {
+      await ejecutarOperacion(
+          context,
+          () => Tienda.instancia.confirmarEntrega(
+                pedidoId: pedido.id,
+                metodoPago: metodo,
+              ));
     }
   }
 }

@@ -1,8 +1,11 @@
-import 'package:material_ui/material_ui.dart';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../../models/producto.dart';
 import '../../services/tienda.dart';
+import '../../utils/ejecutar_operacion.dart';
 import '../../widgets/imagen_producto.dart';
 
 class ProductoFormScreen extends StatefulWidget {
@@ -48,7 +51,10 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
     super.dispose();
   }
 
-  void _guardar() {
+  bool _guardando = false;
+
+  Future<void> _guardar() async {
+    if (_guardando) return;
     if (!_formKey.currentState!.validate() ||
         _categoriaId == null ||
         _rutaImagen.isEmpty) {
@@ -65,25 +71,35 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
       esAsset: _esAsset,
       disponible: _disponible,
     );
-    if (anterior == null) {
-      Tienda.instancia.agregarProducto(producto);
-    } else {
-      Tienda.instancia.editarProducto(producto);
-    }
-    Navigator.pop(context, true);
+    setState(() => _guardando = true);
+    final tienda = Tienda.instancia;
+    final listo = await ejecutarOperacion(
+        context,
+        () => anterior == null
+            ? tienda.agregarProducto(producto)
+            : tienda.editarProducto(producto));
+    if (!mounted) return;
+    setState(() => _guardando = false);
+    if (listo) Navigator.pop(context, true);
   }
 
   Future<void> _adjuntarImagen() async {
     final resultado = await FilePicker.platform.pickFiles(
       type: FileType.image,
+      withData: true,
     );
     if (!mounted || resultado == null) return;
 
-    final ruta = resultado.files.single.path;
-    if (ruta == null || ruta.isEmpty) return;
-
+    final archivo = resultado.files.single;
+    final bytes = archivo.bytes;
+    if (bytes == null || bytes.length > 700 * 1024) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Elige una imagen de hasta 700 KB.')));
+      return;
+    }
     setState(() {
-      _rutaImagen = ruta;
+      _rutaImagen =
+          'data:image/${archivo.extension};base64,${base64Encode(bytes)}';
       _esAsset = false;
     });
   }
@@ -159,7 +175,8 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
               onChanged: (v) => setState(() => _disponible = v)),
           const SizedBox(height: 20),
           FilledButton(
-              onPressed: _guardar, child: const Text('Guardar producto')),
+              onPressed: _guardando ? null : _guardar,
+              child: const Text('Guardar producto')),
         ]),
       ),
     );
