@@ -80,44 +80,57 @@ class _SplashScreenState extends State<SplashScreen>
                     Text('Tu pizza favorita, hasta tu puerta',
                         style: Theme.of(context).textTheme.bodyLarge),
                     const SizedBox(height: 48),
-                    if (_error)
-                      TextButton(
-                          onPressed: () {
-                            setState(() => _error = false);
-                            _cargarAplicacion();
-                          },
-                          child: const Text('Error de conexión. Reintentar'))
-                    else if (!_listo)
-                      const CircularProgressIndicator()
-                    else ...[
-                      SizedBox(
-                        width: 250,
-                        height: 50,
-                        child: FilledButton(
-                          onPressed: () => Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LoginScreen(),
-                            ),
-                          ),
-                          child: const Text('Iniciar sesión'),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: 250,
-                        height: 50,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RegistroClienteScreen(),
-                            ),
-                          ),
-                          child: const Text('Crear cuenta'),
-                        ),
-                      ),
-                    ],
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      switchInCurve: Curves.easeOutCubic,
+                      child: _error
+                          ? TextButton(
+                              key: const ValueKey('error'),
+                              onPressed: () {
+                                setState(() => _error = false);
+                                _cargarAplicacion();
+                              },
+                              child:
+                                  const Text('Error de conexión. Reintentar'))
+                          : !_listo
+                              ? const CircularProgressIndicator(
+                                  key: ValueKey('cargando'),
+                                )
+                              : Column(
+                                  key: const ValueKey('acciones'),
+                                  children: [
+                                    SizedBox(
+                                      width: 250,
+                                      height: 50,
+                                      child: FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => const LoginScreen(),
+                                          ),
+                                        ),
+                                        child: const Text('Iniciar sesión'),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    SizedBox(
+                                      width: 250,
+                                      height: 50,
+                                      child: OutlinedButton(
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const RegistroClienteScreen(),
+                                          ),
+                                        ),
+                                        child: const Text('Crear cuenta'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                    ),
                   ]),
             ),
           ),

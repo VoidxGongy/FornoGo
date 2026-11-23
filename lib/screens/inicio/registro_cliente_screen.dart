@@ -61,66 +61,77 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Registro de cliente')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            const Center(child: LogoForno(size: 90)),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _nombreController,
-              decoration: const InputDecoration(labelText: 'Nombre completo'),
-              validator: (valor) => _obligatorio(valor, 'El nombre'),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+              children: [
+                const Center(child: LogoForno(size: 90)),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _nombreController,
+                  decoration:
+                      const InputDecoration(labelText: 'Nombre completo'),
+                  validator: (valor) => _obligatorio(valor, 'El nombre'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _correoController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Correo'),
+                  validator: (valor) {
+                    final error = _obligatorio(valor, 'El correo');
+                    if (error != null) return error;
+                    return valor!.contains('@') ? null : 'Correo inválido';
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _telefonoController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Teléfono'),
+                  validator: (valor) => _obligatorio(valor, 'El teléfono'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _direccionController,
+                  decoration:
+                      const InputDecoration(labelText: 'Dirección principal'),
+                  validator: (valor) => _obligatorio(valor, 'La dirección'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _claveController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Contraseña'),
+                  validator: (valor) {
+                    if (valor == null || valor.length < 6) {
+                      return 'Usa al menos 6 caracteres';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _confirmarClaveController,
+                  obscureText: true,
+                  decoration:
+                      const InputDecoration(labelText: 'Confirmar contraseña'),
+                  validator: (valor) => valor != _claveController.text
+                      ? 'Las contraseñas no coinciden'
+                      : null,
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _registrando ? null : _registrar,
+                  child: const Text('Registrar cliente'),
+                ),
+              ],
             ),
-            TextFormField(
-              controller: _correoController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Correo'),
-              validator: (valor) {
-                final error = _obligatorio(valor, 'El correo');
-                if (error != null) return error;
-                return valor!.contains('@') ? null : 'Correo inválido';
-              },
-            ),
-            TextFormField(
-              controller: _telefonoController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Teléfono'),
-              validator: (valor) => _obligatorio(valor, 'El teléfono'),
-            ),
-            TextFormField(
-              controller: _direccionController,
-              decoration:
-                  const InputDecoration(labelText: 'Dirección principal'),
-              validator: (valor) => _obligatorio(valor, 'La dirección'),
-            ),
-            TextFormField(
-              controller: _claveController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Contraseña'),
-              validator: (valor) {
-                if (valor == null || valor.length < 6) {
-                  return 'Usa al menos 6 caracteres';
-                }
-                return null;
-              },
-            ),
-            TextFormField(
-              controller: _confirmarClaveController,
-              obscureText: true,
-              decoration:
-                  const InputDecoration(labelText: 'Confirmar contraseña'),
-              validator: (valor) => valor != _claveController.text
-                  ? 'Las contraseñas no coinciden'
-                  : null,
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _registrando ? null : _registrar,
-              child: const Text('Registrar cliente'),
-            ),
-          ],
+          ),
         ),
       ),
     );

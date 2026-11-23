@@ -22,7 +22,7 @@ class _NavegacionDomiciliarioState extends State<NavegacionDomiciliario> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return NavegacionAdaptable(
       body: IndexedStack(
         index: _indice,
         children: [
@@ -31,24 +31,22 @@ class _NavegacionDomiciliarioState extends State<NavegacionDomiciliario> {
           PerfilScreen(rol: Rol.domiciliario, cerrarSesion: _cerrarSesion),
         ],
       ),
-      bottomNavigationBar: BarraNavegacionInferior(
-        indiceSeleccionado: _indice,
-        alCambiar: (indice) => setState(() => _indice = indice),
-        destinos: const [
-          NavigationDestination(
-              icon: Icon(Icons.delivery_dining_outlined),
-              selectedIcon: Icon(Icons.delivery_dining),
-              label: 'Asignados'),
-          NavigationDestination(
-              icon: Icon(Icons.check_circle_outline),
-              selectedIcon: Icon(Icons.check_circle),
-              label: 'Completados'),
-          NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Perfil'),
-        ],
-      ),
+      indiceSeleccionado: _indice,
+      alCambiar: (indice) => setState(() => _indice = indice),
+      destinos: const [
+        NavigationDestination(
+            icon: Icon(Icons.delivery_dining_outlined),
+            selectedIcon: Icon(Icons.delivery_dining),
+            label: 'Asignados'),
+        NavigationDestination(
+            icon: Icon(Icons.check_circle_outline),
+            selectedIcon: Icon(Icons.check_circle),
+            label: 'Completados'),
+        NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Perfil'),
+      ],
     );
   }
 }

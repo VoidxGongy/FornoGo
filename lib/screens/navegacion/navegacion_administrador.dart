@@ -24,7 +24,7 @@ class _NavegacionAdministradorState extends State<NavegacionAdministrador> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return NavegacionAdaptable(
       body: IndexedStack(
         index: _indice,
         children: [
@@ -34,28 +34,26 @@ class _NavegacionAdministradorState extends State<NavegacionAdministrador> {
           MasAdminScreen(cerrarSesion: _cerrarSesion),
         ],
       ),
-      bottomNavigationBar: BarraNavegacionInferior(
-        indiceSeleccionado: _indice,
-        alCambiar: (indice) => setState(() => _indice = indice),
-        destinos: const [
-          NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long),
-              label: 'Pedidos'),
-          NavigationDestination(
-              icon: Icon(Icons.local_pizza_outlined),
-              selectedIcon: Icon(Icons.local_pizza),
-              label: 'Productos'),
-          NavigationDestination(
-              icon: Icon(Icons.delivery_dining_outlined),
-              selectedIcon: Icon(Icons.delivery_dining),
-              label: 'Domiciliarios'),
-          NavigationDestination(
-              icon: Icon(Icons.grid_view_outlined),
-              selectedIcon: Icon(Icons.grid_view),
-              label: 'Más'),
-        ],
-      ),
+      indiceSeleccionado: _indice,
+      alCambiar: (indice) => setState(() => _indice = indice),
+      destinos: const [
+        NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'Pedidos'),
+        NavigationDestination(
+            icon: Icon(Icons.local_pizza_outlined),
+            selectedIcon: Icon(Icons.local_pizza),
+            label: 'Productos'),
+        NavigationDestination(
+            icon: Icon(Icons.delivery_dining_outlined),
+            selectedIcon: Icon(Icons.delivery_dining),
+            label: 'Domiciliarios'),
+        NavigationDestination(
+            icon: Icon(Icons.grid_view_outlined),
+            selectedIcon: Icon(Icons.grid_view),
+            label: 'Más'),
+      ],
     );
   }
 }

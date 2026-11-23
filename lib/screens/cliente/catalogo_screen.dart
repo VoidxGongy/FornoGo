@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/categoria.dart';
+import '../../models/producto.dart';
 import '../../services/tienda.dart';
 import '../../utils/ejecutar_operacion.dart';
 import '../../theme/tema_fornogo.dart';
@@ -112,97 +113,46 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
           Expanded(
             child: productos.isEmpty
                 ? const Center(child: Text('No hay productos disponibles.'))
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    itemCount: productos.length,
-                    itemBuilder: (_, index) {
-                      final producto = productos[index];
-                      return Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: () => Navigator.push(
+                : Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1320),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final mostrarGrid = constraints.maxWidth >= 760;
+                          if (mostrarGrid) {
+                            final columnas = (constraints.maxWidth / 270)
+                                .floor()
+                                .clamp(2, 5);
+                            return GridView.builder(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columnas,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.82,
+                              ),
+                              itemCount: productos.length,
+                              itemBuilder: (_, index) => _tarjetaProducto(
+                                context,
+                                productos[index],
+                                enGrid: true,
+                              ),
+                            );
+                          }
+                          return ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                            itemCount: productos.length,
+                            itemBuilder: (_, index) => _tarjetaProducto(
                               context,
-                              MaterialPageRoute(
-                                  builder: (_) => ProductoDetalleScreen(
-                                      producto: producto))),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(children: [
-                              Hero(
-                                  tag: 'producto-${producto.id}',
-                                  child: ImagenProducto(
-                                      ruta: producto.rutaImagen,
-                                      esAsset: producto.esAsset,
-                                      nombreProducto: producto.nombre,
-                                      width: 104,
-                                      height: 104,
-                                      borderRadius: 14)),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                  child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                    Text(producto.nombre,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16)),
-                                    const SizedBox(height: 5),
-                                    Text(producto.descripcion,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                            color: Color(0xFF756767))),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                              formatoPesosColombianos(
-                                                  producto.precio),
-                                              style: const TextStyle(
-                                                  color: Color(0xFFD32F2F),
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16)),
-                                          IconButton.filled(
-                                              style: IconButton.styleFrom(
-                                                minimumSize: const Size(40, 40),
-                                                padding: EdgeInsets.zero,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                              ),
-                                              onPressed: () async {
-                                                final guardado =
-                                                    await ejecutarOperacion(
-                                                        context,
-                                                        () => tienda
-                                                            .agregarAlCarrito(
-                                                                producto, 1));
-                                                if (!guardado ||
-                                                    !context.mounted) {
-                                                  return;
-                                                }
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(SnackBar(
-                                                        content: Text(
-                                                            '${producto.nombre} agregado al carrito')));
-                                              },
-                                              icon: const Icon(
-                                                  Icons.add_shopping_cart,
-                                                  size: 20),
-                                              tooltip: 'Agregar al carrito'),
-                                        ]),
-                                  ])),
-                            ]),
-                          ),
-                        ),
-                      );
-                    },
+                              productos[index],
+                              enGrid: false,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
           ),
         ],
@@ -212,6 +162,108 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
 
   void _cerrarSesion(BuildContext context) =>
       ejecutarOperacion(context, Tienda.instancia.cerrarSesion);
+
+  Widget _tarjetaProducto(
+    BuildContext context,
+    Producto producto, {
+    required bool enGrid,
+  }) {
+    final imagen = Hero(
+      tag: 'producto-${producto.id}',
+      child: ImagenProducto(
+        ruta: producto.rutaImagen,
+        esAsset: producto.esAsset,
+        nombreProducto: producto.nombre,
+        width: enGrid ? double.infinity : 104,
+        height: enGrid ? double.infinity : 104,
+        borderRadius: 14,
+      ),
+    );
+    final detalles = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          producto.nombre,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          producto.descripcion,
+          maxLines: enGrid ? 3 : 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: TemaFornoGO.textoSecundario),
+        ),
+        if (enGrid) const Spacer() else const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              formatoPesosColombianos(producto.precio),
+              style: const TextStyle(
+                color: TemaFornoGO.rojo,
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+            ),
+            IconButton.filled(
+              style: IconButton.styleFrom(
+                minimumSize: const Size(42, 42),
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(13),
+                ),
+              ),
+              onPressed: () async {
+                final guardado = await ejecutarOperacion(context,
+                    () => Tienda.instancia.agregarAlCarrito(producto, 1));
+                if (!guardado || !context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('${producto.nombre} agregado al carrito')));
+              },
+              icon: const Icon(Icons.add_shopping_cart, size: 20),
+              tooltip: 'Agregar al carrito',
+            ),
+          ],
+        ),
+      ],
+    );
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProductoDetalleScreen(producto: producto),
+          ),
+        ),
+        child: enGrid
+            ? Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: imagen),
+                    const SizedBox(height: 12),
+                    Expanded(child: detalles),
+                  ],
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    imagen,
+                    const SizedBox(width: 14),
+                    Expanded(child: detalles),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
 
   Widget _filtro(List<Categoria> categorias) {
     return SingleChildScrollView(
