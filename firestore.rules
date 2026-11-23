@@ -125,12 +125,11 @@ service cloud.firestore {
         || (rol('domiciliario') && resource.data.domiciliarioId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['estado', 'metodoPago'])
-          && ((resource.data.estado == 'listo'
-                && request.resource.data.estado == 'enCamino'
-                && request.resource.data.metodoPago == resource.data.metodoPago)
-              || (resource.data.estado == 'enCamino'
-                && request.resource.data.estado == 'entregado'
-                && medioDePago(request.resource.data.metodoPago))));
+          && request.resource.data.estado == 'entregado'
+          && resource.data.estado in [
+            'pendiente', 'aceptado', 'enPreparacion', 'listo', 'enCamino'
+          ]
+          && medioDePago(request.resource.data.metodoPago));
     }
   }
 }
