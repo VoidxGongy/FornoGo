@@ -141,8 +141,8 @@ service cloud.firestore {
             .hasOnly(['estado', 'metodoPago'])
           && request.resource.data.estado == 'entregado'
           && resource.data.estado in [
-            'asignado', 'pendiente', 'aceptado', 'enPreparacion', 'listo', 'enCamino'
-          ]
+             'aceptado', 'enPreparacion', 'listo', 'enCamino'
+           ]
           && medioDePago(request.resource.data.metodoPago));
     }
   }

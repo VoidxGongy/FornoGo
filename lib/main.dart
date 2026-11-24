@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'controllers/tienda_controller.dart';
 import 'firebase_options.dart';
 import 'services/notificaciones_forno.dart';
+import 'services/persistencia_local.dart';
 import 'screens/inicio/splash_screen.dart';
 import 'theme/tema_fornogo.dart';
 
@@ -17,8 +20,10 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: kIsWeb ? firebaseWebOptions : firebaseAndroidOptions,
     );
+    await PersistenciaLocal.instancia.inicializar();
     FirebaseFirestore.instance.settings =
         const Settings(persistenceEnabled: false);
+    Get.put(TiendaController(), permanent: true);
     runApp(const MyApp());
   } catch (error) {
     debugPrint('Error al iniciar Firebase: $error');
@@ -38,6 +43,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         title: 'FornoGO',
         scaffoldMessengerKey: NotificacionesForno.instancia.mensajero,
+        navigatorKey: NotificacionesForno.instancia.navegador,
         debugShowCheckedModeBanner: false,
         theme: TemaFornoGO.tema,
         home: const SplashScreen(),

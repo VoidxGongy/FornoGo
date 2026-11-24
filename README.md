@@ -1,53 +1,142 @@
 # FornoGO
 
-Aplicación Flutter para administrar el catálogo, los pedidos y las entregas de una pizzería. Android y web usan el mismo proyecto Firebase y los mismos datos.
+Aplicación Flutter para gestionar el catálogo, los pedidos, el inventario y las
+entregas de una pizzería. Android y web utilizan el proyecto Firebase
+`fornogo-pizzeria-2026`.
 
-## Ejecutar
+## Funcionalidades
+
+### Cliente
+
+- Registro e inicio de sesión con Firebase Authentication.
+- Consulta, búsqueda y filtro del catálogo.
+- Carrito persistido en Firestore.
+- Creación y consulta de pedidos.
+- Activación de notificaciones push.
+
+### Administrador
+
+- Gestión de categorías y productos.
+- Ajuste de inventario y stock mínimo.
+- Consulta y actualización transaccional de pedidos.
+- Asignación de domiciliarios.
+- Gestión de domiciliarios.
+
+### Domiciliario
+
+- Consulta de pedidos asignados.
+- Confirmación de entregas.
+- Consulta de entregas completadas.
+- Activación de notificaciones push.
+
+## Tecnologías
+
+- Flutter y Dart.
+- Firebase Authentication.
+- Cloud Firestore.
+- Firebase Cloud Messaging.
+- Firebase Functions.
+- Flutter Local Notifications.
+- SharedPreferences para datos locales no sensibles.
+- GetX para la inyección del controlador de sesión y la selección reactiva
+  del flujo por rol.
+
+El proyecto no utiliza Firebase Realtime Database ni Firebase Storage. Las
+imágenes seleccionadas por el administrador se guardan como datos Base64 en el
+documento del producto, con un límite de 700 KB.
+
+## Arquitectura
+
+La aplicación utiliza modelos Dart, pantallas Flutter, widgets reutilizables,
+un servicio Singleton `Tienda` basado en `ChangeNotifier` y un
+`TiendaController` de GetX que conecta el estado de sesión con la navegación
+por roles.
+
+```text
+lib/
+├── controllers/
+├── models/
+├── screens/
+│   ├── administrador/
+│   ├── cliente/
+│   ├── domiciliario/
+│   ├── inicio/
+│   ├── navegacion/
+│   └── compartidos/
+├── services/
+├── theme/
+├── utils/
+└── widgets/
+```
+
+## Colecciones Firestore
+
+- `usuarios/{uid}`
+- `usuarios/{uid}/carrito/actual`
+- `usuarios/{uid}/dispositivos_push/{fid}`
+- `categorias/{id}`
+- `productos/{id}`
+- `inventario/{productoId}`
+- `inventario/{productoId}/movimientos/{movimientoId}`
+- `pedidos/{id}`
+- `pedidos/{id}/avisos_push/{avisoId}`
+
+Los catálogos, perfiles, pedidos, carrito e inventario se sincronizan mediante
+listeners `snapshots()` de Cloud Firestore.
+
+## Instalación
+
+Requisitos:
+
+- Flutter 3.50.1 o compatible.
+- Dart 3.14 o compatible.
+- Android SDK para compilar Android.
+- Firebase CLI.
+- Un dispositivo Android o un navegador compatible para las pruebas.
+
+Instalar dependencias:
 
 ```bash
 flutter pub get
+```
+
+Ejecutar:
+
+```bash
 flutter run
 ```
 
-- Firebase Authentication autentica las cuentas por correo y contraseña.
-- Firestore guarda perfiles, categorías, productos, pedidos e inventario. El carrito se guarda en `usuarios/{uid}/carrito/actual`.
-- Al confirmar el carrito, el cliente envía un pedido pendiente. Al aceptarlo, el administrador valida precios y stock y registra los movimientos en la misma transacción. La cancelación de un pedido aceptado devuelve las existencias.
-- El administrador puede ajustar las existencias y el stock mínimo desde el menú de cada producto. Las fotos nuevas se guardan con el producto y se muestran en todos los dispositivos.
-
-## Primera cuenta administrativa
-
-En el proyecto `fornogo-pizzeria-2026`, habilita el proveedor de correo y contraseña en Firebase Authentication. Registra tu cuenta desde FornoGO, busca su UID en Authentication y cambia el campo `rol` a `administrador` en el documento `usuarios/{uid}` desde Firebase Console. Inicia sesión de nuevo para cargar el perfil administrativo. Las cuentas de clientes no pueden asignarse privilegios.
-
-## Web
+Crear la versión web:
 
 ```bash
 flutter build web
 firebase deploy --only firestore:rules,hosting
 ```
 
-Firebase Hosting sirve `build/web`. Las reglas limitan el acceso a cada perfil, carrito y pedido. Android usa las opciones registradas para `com.example.p23092026`.
+## Configuración de administrador
 
-El catálogo inicial e inventario residen en Firestore. Los datos que existían solo en instalaciones anteriores permanecen en esos dispositivos y deben revisarse antes de cualquier importación.
-## Notificaciones de pedidos
+1. Registra una cuenta desde FornoGO.
+2. Busca su UID en Firebase Authentication.
+3. Crea o edita `usuarios/{uid}` en Firestore.
+4. Establece `rol` en `administrador`.
+5. Mantén `activo` en `true`.
+6. Cierra e inicia sesión de nuevo.
 
-El cliente y el domiciliario pueden activar las notificaciones en **Mi perfil**. La app registra el
-dispositivo con FCM mediante su Firebase Installation ID y guarda el registro en
-`usuarios/{uid}/dispositivos_push/{fid}`. Con la app abierta, muestra el aviso
-dentro de FornoGO. Android y el service worker web reciben los avisos en segundo plano.
+## Notificaciones push
 
-La compilación usa la clave VAPID pública del proyecto. Para cambiarla, genera la nueva clave en Configuración del proyecto → Cloud Messaging → Certificados de notificaciones web y reemplázala en las opciones de Firebase, o compila con `--dart-define=FCM_VAPID_KEY=CLAVE_PUBLICA`.
+1. Inicia sesión como cliente o domiciliario.
+2. Abre **Mi perfil**.
+3. Pulsa **Activar notificaciones** y concede los permisos.
+4. Verifica que aparezca `usuarios/{uid}/dispositivos_push/{fid}`.
+5. Desde Firebase Console utiliza **Cloud Messaging → Enviar mensaje de
+   prueba**.
+6. Prueba con la aplicación abierta, en segundo plano y después de abrirla
+   desde la notificación.
 
-```bash
-flutter build web
-firebase deploy --only firestore:rules,hosting
-```
+Las notificaciones automáticas de pedidos utilizan la función
+`notificarCambioEstadoPedido`.
 
-Tras activar las notificaciones, usa **Cloud Messaging → Enviar mensaje de prueba**
-con el FID del documento del dispositivo y pon la app en segundo plano.
-
-Los avisos automáticos usan la función `notificarCambioEstadoPedido`. La función escucha los
-cambios de estado de `pedidos` y envía al comprador y al domiciliario asignado mediante el Admin SDK y las
-credenciales del entorno. Firebase requiere el plan Blaze para desplegarla.
+Desplegar Functions:
 
 ```bash
 cd functions
@@ -56,3 +145,39 @@ npm test
 cd ..
 firebase deploy --only functions:notificarCambioEstadoPedido
 ```
+
+El despliegue de Functions puede requerir el plan Blaze.
+
+## Pruebas
+
+```bash
+flutter analyze
+flutter test
+```
+
+```bash
+cd functions
+npm test
+```
+
+Para validar el flujo completo se requiere un proyecto Firebase autorizado y
+un dispositivo real. No se deben utilizar operaciones destructivas sobre datos
+de producción.
+
+## Seguridad
+
+- Firebase Authentication administra las contraseñas.
+- No se guardan contraseñas ni tokens administrativos en SharedPreferences.
+- Las reglas de Firestore restringen perfiles, carritos, pedidos e inventario
+  según el usuario y su rol.
+- `firebase_options.dart` y `firebase.xml` contienen configuración pública de
+  cliente, no credenciales administrativas.
+- Las reglas desplegadas deben comprobarse también desde Firebase Console.
+
+## Limitaciones conocidas
+
+- La aplicación soporta oficialmente Android y web.
+- iOS y Linux no forman parte del flujo soportado.
+- La recuperación y verificación de correo aún no forman parte del flujo.
+- Los pedidos no se eliminan físicamente; se actualizan o se marcan con un
+  estado final.

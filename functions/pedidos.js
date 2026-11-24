@@ -80,7 +80,7 @@ async function enviarUnaVez(db, mensajeria, pedido, dispositivo, aviso, eventoId
     }
 
     try {
-      await mensajeria.send({ ...aviso, fid: dispositivo.id });
+      await mensajeria.send({ ...aviso, token: dispositivo.id });
     } catch (error) {
       if (!invalidos.has(error.code)) throw error;
       const precondicion = { lastUpdateTime: dispositivo.updateTime };

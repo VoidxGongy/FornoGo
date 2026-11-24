@@ -6,12 +6,14 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../firebase_options.dart';
+import '../screens/navegacion/rol_home_screen.dart';
 import 'notificacion_emergente.dart';
 
 class NotificacionesForno extends ChangeNotifier {
   NotificacionesForno._();
   static final instancia = NotificacionesForno._();
   final mensajero = GlobalKey<ScaffoldMessengerState>();
+  final navegador = GlobalKey<NavigatorState>();
 
   static const _vapid = String.fromEnvironment('FCM_VAPID_KEY',
       defaultValue: firebaseWebVapidKey);
@@ -25,6 +27,7 @@ class NotificacionesForno extends ChangeNotifier {
   Future<void> _guardado = Future.value();
   StreamSubscription<String>? _registros;
   StreamSubscription<RemoteMessage>? _mensajes;
+  StreamSubscription<RemoteMessage>? _aperturas;
 
   String? get idInstalacion => _uid == null ? null : _fid;
   bool get activas => idInstalacion != null;
@@ -103,6 +106,9 @@ class NotificacionesForno extends ChangeNotifier {
         mensajero.currentState?.showSnackBar(SnackBar(content: Text(texto)));
       }
     });
+    _aperturas ??=
+        FirebaseMessaging.onMessageOpenedApp.listen((_) => _abrirAplicacion());
+    unawaited(_revisarMensajeInicial());
     _registros = _mensajeria.onRegistered.listen((fid) {
       if (_uid != uid) return;
       _guardado = _guardado.then((_) async {
@@ -134,6 +140,20 @@ class NotificacionesForno extends ChangeNotifier {
     ], eagerError: true);
   }
 
+  Future<void> _revisarMensajeInicial() async {
+    final mensaje = await _mensajeria.getInitialMessage();
+    if (mensaje != null && _uid != null) _abrirAplicacion();
+  }
+
+  void _abrirAplicacion() {
+    if (_uid != null) {
+      navegador.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const RolHomeScreen()),
+        (_) => false,
+      );
+    }
+  }
+
   Future<void> _guardarDispositivo(String uid, String fid) async {
     final anterior = _fid;
     final db = FirebaseFirestore.instance;
@@ -161,6 +181,8 @@ class NotificacionesForno extends ChangeNotifier {
     _uid = null;
     await _registros?.cancel();
     _registros = null;
+    await _aperturas?.cancel();
+    _aperturas = null;
     try {
       await _guardado.timeout(_esperaSalida);
       final fid = _fid;

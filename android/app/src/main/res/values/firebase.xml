@@ -5,4 +5,5 @@
     <string name="google_api_key" translatable="false">AIzaSyA8X41lg-e1Y6BZZBH3rN9PFdfmeAv1-Pk</string>
     <string name="gcm_defaultSenderId" translatable="false">475926770159</string>
     <string name="project_id" translatable="false">fornogo-pizzeria-2026</string>
+    <string name="default_notification_channel_id" translatable="false">actualizaciones_pedidos</string>
 </resources>

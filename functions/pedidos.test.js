@@ -61,7 +61,7 @@ test('Un evento repetido avisa solo a los dispositivos del comprador', async () 
   await notificarCambio(evento, db, mensajeria);
   await notificarCambio(evento, db, mensajeria);
   assert.equal(enviados.length, 1);
-  assert.equal(enviados[0].fid, id);
+  assert.equal(enviados[0].token, id);
 });
 
 test('Conserva los avisos de asignación y extravío para el domiciliario', () => {

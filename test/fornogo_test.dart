@@ -59,4 +59,11 @@ void main() {
     expect(recuperado.items.single.nombre, 'Pizza Margarita');
     expect(recuperado.total, 33000);
   });
+
+  test('El pedido puede aceptarse antes de iniciar la preparación', () {
+    expect(
+      EstadoPedido.siguientes(EstadoPedido.pendiente),
+      contains(EstadoPedido.aceptado),
+    );
+  });
 }

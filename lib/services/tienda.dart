@@ -15,6 +15,7 @@ import '../models/producto_carrito.dart';
 import '../models/sesion.dart';
 import '../models/usuario.dart';
 import 'notificaciones_forno.dart';
+import 'persistencia_local.dart';
 
 const double kCostoDomicilio = 5000;
 
@@ -98,6 +99,7 @@ class Tienda extends ChangeNotifier {
     inventario = {};
     _cantidades = {};
     errorDeCarga = null;
+    await PersistenciaLocal.instancia.limpiarSesion();
     notifyListeners();
     await Future.wait(pendientes.map((suscripcion) => suscripcion.cancel()));
   }
@@ -112,6 +114,7 @@ class Tienda extends ChangeNotifier {
     }
     final usuario = Usuario.fromMap(datos, uid: uid);
     perfil = usuario;
+    await PersistenciaLocal.instancia.guardarSesion(uid, usuario.rol.name);
 
     _sesiones.add(documento.snapshots().listen((doc) {
       final datos = doc.data();
@@ -437,10 +440,8 @@ class Tienda extends ChangeNotifier {
     return true;
   }
 
-  Future<void> cancelarPedido(String pedidoId) => _db
-      .collection('pedidos')
-      .doc(pedidoId)
-      .update({'estado': EstadoPedidoFirestore.cancelado.name});
+  Future<void> cancelarPedido(String pedidoId) =>
+      actualizarEstadoPedido(pedidoId, EstadoPedido.cancelado);
 
   Future<void> marcarPedidoExtraviado(String pedidoId) => _db
       .collection('pedidos')
@@ -448,18 +449,31 @@ class Tienda extends ChangeNotifier {
       .update({'estado': EstadoPedidoFirestore.extraviado.name});
 
   Future<void> confirmarEntrega(
-          {required String pedidoId, required String metodoPago}) =>
-      _db.collection('pedidos').doc(pedidoId).update({
+      {required String pedidoId, required String metodoPago}) async {
+    final ref = _db.collection('pedidos').doc(pedidoId);
+    await _db.runTransaction((tx) async {
+      final datos = (await tx.get(ref)).data();
+      if (datos == null) throw StateError('El pedido ya no existe.');
+      final pedido = PedidoFirestore.fromMap(datos, id: pedidoId);
+      final estado = EstadoPedido.nombres[pedido.estado]!;
+      if (![
+        EstadoPedido.aceptado,
+        EstadoPedido.enPreparacion,
+        EstadoPedido.listo,
+        EstadoPedido.enCamino,
+      ].contains(estado)) {
+        throw StateError('El pedido todavía no está listo para entregar.');
+      }
+      tx.update(ref, {
         'estado': EstadoPedidoFirestore.entregado.name,
         'metodoPago': metodoPago.toLowerCase(),
       });
+    });
+  }
 
   Future<void> actualizarEstadoAdministrativo(
       String pedidoId, String estado) async {
-    final siguiente = EstadoPedido.paraFirestore(estado);
-    await _db.collection('pedidos').doc(pedidoId).update({
-      'estado': siguiente.name,
-    });
+    await actualizarEstadoPedido(pedidoId, estado);
   }
 
   Future<void> actualizarEstadoPedido(String id, String estado) async {
@@ -473,7 +487,8 @@ class Tienda extends ChangeNotifier {
           .contains(estado)) {
         throw StateError('El pedido cambió de estado. Actualiza la vista.');
       }
-      final acepta = pedido.estado == EstadoPedidoFirestore.pendiente &&
+      final acepta = (pedido.estado == EstadoPedidoFirestore.pendiente ||
+              pedido.estado == EstadoPedidoFirestore.asignado) &&
           siguiente == EstadoPedidoFirestore.aceptado;
       final devuelve = siguiente == EstadoPedidoFirestore.cancelado &&
           const {

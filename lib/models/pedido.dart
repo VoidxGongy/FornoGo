@@ -31,8 +31,8 @@ class EstadoPedido {
       nombres.entries.singleWhere((elemento) => elemento.value == estado).key;
 
   static List<String> siguientes(String estado) => switch (estado) {
-        pendiente => [asignado, rechazado, cancelado],
-        asignado => [entregado, extraviado, cancelado],
+        pendiente => [asignado, aceptado, rechazado, cancelado],
+        asignado => [aceptado, extraviado, cancelado],
         aceptado => [enPreparacion, cancelado],
         enPreparacion => [listo, cancelado],
         listo => [enCamino, cancelado],
