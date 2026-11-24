@@ -118,11 +118,11 @@ service cloud.firestore {
       allow update: if
         (admin() && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['estado', 'domiciliarioId'])
-          && ((request.resource.data.estado == 'asignado'
-                && resource.data.estado in ['pendiente', 'asignado']
-                && request.resource.data.domiciliarioId is string
-                && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.rol == 'domiciliario'
-                && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.activo == true)
+           && ((request.resource.data.estado in ['asignado', 'aceptado']
+                 && resource.data.estado in ['pendiente', 'asignado', 'aceptado']
+                 && request.resource.data.domiciliarioId is string
+                 && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.rol == 'domiciliario'
+                 && get(/databases/$(database)/documents/usuarios/$(request.resource.data.domiciliarioId)).data.activo == true)
               || (request.resource.data.domiciliarioId == resource.data.domiciliarioId
                 && request.resource.data.estado in ['cancelado', 'extraviado']
                 && resource.data.estado in [

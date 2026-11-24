@@ -12,6 +12,7 @@ entregas de una pizzería. Android y web utilizan el proyecto Firebase
 - Consulta, búsqueda y filtro del catálogo.
 - Carrito persistido en Firestore.
 - Creación y consulta de pedidos.
+- Selección del comprobante de transferencia y apertura del chat de WhatsApp.
 - Activación de notificaciones push.
 
 ### Administrador
@@ -135,6 +136,15 @@ firebase deploy --only firestore:rules,hosting
 
 Las notificaciones automáticas de pedidos utilizan la función
 `notificarCambioEstadoPedido`.
+
+## Transferencias
+
+Al seleccionar **Transferencia bancaria**, el cliente debe elegir una imagen
+del comprobante. Después de crear el pedido, FornoGO abre el chat de WhatsApp
+del número **305 332 5716** con el número del pedido y un mensaje preparado.
+El usuario debe confirmar el envío y adjuntar la imagen en WhatsApp. WhatsApp
+no permite adjuntar automáticamente una imagen a un chat específico desde una
+URL web estándar.
 
 Desplegar Functions:
 

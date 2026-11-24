@@ -370,7 +370,7 @@ class Tienda extends ChangeNotifier {
   List<Pedido> pedidosDeCliente(String uid) =>
       pedidos.where((pedido) => pedido.clienteId == uid).toList();
 
-  Future<void> confirmarPedido({
+  Future<String> confirmarPedido({
     required String direccion,
     required String referencias,
     required String metodoPago,
@@ -410,6 +410,7 @@ class Tienda extends ChangeNotifier {
           {...pedido.toMap(), 'fecha': FieldValue.serverTimestamp()});
       tx.delete(carritoRef);
     });
+    return pedidoRef.id;
   }
 
   Future<bool> asignarDomiciliario(
@@ -425,16 +426,21 @@ class Tienda extends ChangeNotifier {
         throw StateError('No se puede asignar un pedido finalizado.');
       }
       if (estado != EstadoPedidoFirestore.pendiente.name &&
-          estado != EstadoPedidoFirestore.asignado.name) {
+          estado != EstadoPedidoFirestore.asignado.name &&
+          estado != EstadoPedidoFirestore.aceptado.name) {
         throw StateError('El pedido ya está siendo procesado.');
       }
       if (datos['domiciliarioId'] == domiciliarioId &&
-          estado == EstadoPedidoFirestore.asignado.name) {
+          (estado == EstadoPedidoFirestore.asignado.name ||
+              estado == EstadoPedidoFirestore.aceptado.name)) {
         return;
       }
+      final siguiente = estado == EstadoPedidoFirestore.aceptado.name
+          ? EstadoPedidoFirestore.aceptado.name
+          : EstadoPedidoFirestore.asignado.name;
       tx.update(ref, {
         'domiciliarioId': domiciliarioId,
-        'estado': EstadoPedidoFirestore.asignado.name,
+        'estado': siguiente,
       });
     });
     return true;
