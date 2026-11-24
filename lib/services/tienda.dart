@@ -456,23 +456,54 @@ class Tienda extends ChangeNotifier {
 
   Future<void> confirmarEntrega(
       {required String pedidoId, required String metodoPago}) async {
+    await actualizarEstadoDomiciliario(
+      pedidoId: pedidoId,
+      estado: EstadoPedido.entregado,
+      metodoPago: metodoPago,
+    );
+  }
+
+  Future<void> actualizarEstadoDomiciliario({
+    required String pedidoId,
+    required String estado,
+    String? metodoPago,
+  }) async {
     final ref = _db.collection('pedidos').doc(pedidoId);
     await _db.runTransaction((tx) async {
       final datos = (await tx.get(ref)).data();
       if (datos == null) throw StateError('El pedido ya no existe.');
       final pedido = PedidoFirestore.fromMap(datos, id: pedidoId);
-      final estado = EstadoPedido.nombres[pedido.estado]!;
-      if (![
+      final estadoActual = EstadoPedido.nombres[pedido.estado]!;
+      final estadosEnCamino = [
+        EstadoPedido.asignado,
         EstadoPedido.aceptado,
         EstadoPedido.enPreparacion,
         EstadoPedido.listo,
-        EstadoPedido.enCamino,
-      ].contains(estado)) {
-        throw StateError('El pedido todavía no está listo para entregar.');
+      ];
+      if (estado == EstadoPedido.enCamino &&
+          !estadosEnCamino.contains(estadoActual)) {
+        throw StateError('El pedido no puede pasar a estado En camino.');
+      }
+      if (estado == EstadoPedido.entregado &&
+          estadoActual != EstadoPedido.enCamino) {
+        throw StateError('Primero marca el pedido como En camino.');
+      }
+      if (estado != EstadoPedido.enCamino &&
+          estado != EstadoPedido.entregado) {
+        throw StateError('Estado de entrega no válido.');
+      }
+      if (estado == EstadoPedido.entregado &&
+          ![
+            MetodoPago.efectivo,
+            MetodoPago.tarjeta,
+            MetodoPago.transferencia,
+          ].contains(metodoPago)) {
+        throw StateError('Selecciona el método de pago.');
       }
       tx.update(ref, {
-        'estado': EstadoPedidoFirestore.entregado.name,
-        'metodoPago': metodoPago.toLowerCase(),
+        'estado': EstadoPedido.paraFirestore(estado).name,
+        if (estado == EstadoPedido.entregado)
+          'metodoPago': metodoPago!.toLowerCase(),
       });
     });
   }

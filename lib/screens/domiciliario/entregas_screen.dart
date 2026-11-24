@@ -112,40 +112,77 @@ class _EntregasScreenState extends State<EntregasScreen> {
   }
 
   Future<void> _confirmar(Pedido pedido) async {
+    final estados = pedido.estado == EstadoPedido.enCamino
+        ? [EstadoPedido.entregado]
+        : [EstadoPedido.enCamino];
+    var estado = estados.first;
     String metodo = pedido.metodoPago;
-    final confirmado = await showDialog<bool>(
+    final respuesta = await showDialog<(String, String?)>(
       context: context,
       builder: (_) => StatefulBuilder(
           builder: (context, actualizar) => AlertDialog(
-                title: Text('Confirmar pedido #${pedido.id}'),
-                content: DropdownButtonFormField<String>(
-                    initialValue: metodo,
-                    items: const [
-                      DropdownMenuItem(
-                          value: MetodoPago.efectivo, child: Text('Efectivo')),
-                      DropdownMenuItem(
-                          value: MetodoPago.transferencia,
-                          child: Text('Transferencia')),
-                      DropdownMenuItem(
-                          value: MetodoPago.tarjeta, child: Text('Tarjeta'))
+                title: Text('Actualizar pedido #${pedido.id}'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: estado,
+                      decoration:
+                          const InputDecoration(labelText: 'Nuevo estado'),
+                      items: [
+                        for (final opcion in estados)
+                          DropdownMenuItem(
+                            value: opcion,
+                            child: Text(opcion),
+                          ),
+                      ],
+                      onChanged: (v) =>
+                          actualizar(() => estado = v ?? estado),
+                    ),
+                    if (estado == EstadoPedido.entregado) ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: metodo,
+                        decoration: const InputDecoration(
+                            labelText: 'Método de pago recibido'),
+                        items: const [
+                          DropdownMenuItem(
+                              value: MetodoPago.efectivo,
+                              child: Text('Efectivo')),
+                          DropdownMenuItem(
+                              value: MetodoPago.transferencia,
+                              child: Text('Transferencia')),
+                          DropdownMenuItem(
+                              value: MetodoPago.tarjeta,
+                              child: Text('Tarjeta')),
+                        ],
+                        onChanged: (v) =>
+                            actualizar(() => metodo = v ?? metodo),
+                      ),
                     ],
-                    onChanged: (v) => actualizar(() => metodo = v ?? metodo)),
+                  ],
+                ),
                 actions: [
                   TextButton(
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => Navigator.pop(context),
                       child: const Text('Cancelar')),
                   FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Confirmar entrega'))
+                      onPressed: () => Navigator.pop(
+                          context,
+                          (estado, estado == EstadoPedido.entregado
+                              ? metodo
+                              : null)),
+                      child: const Text('Guardar estado')),
                 ],
               )),
     );
-    if (confirmado == true && mounted) {
+    if (respuesta != null && mounted) {
       await ejecutarOperacion(
           context,
-          () => Tienda.instancia.confirmarEntrega(
+          () => Tienda.instancia.actualizarEstadoDomiciliario(
                 pedidoId: pedido.id,
-                metodoPago: metodo,
+                estado: respuesta.$1,
+                metodoPago: respuesta.$2,
               ));
     }
   }

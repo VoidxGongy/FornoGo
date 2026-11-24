@@ -138,11 +138,16 @@ service cloud.firestore {
               || resource.data.domiciliarioId is string))
         || (rol('domiciliario') && resource.data.domiciliarioId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['estado'])
+          && request.resource.data.estado == 'enCamino'
+          && resource.data.estado in [
+            'asignado', 'aceptado', 'enPreparacion', 'listo'
+          ])
+        || (rol('domiciliario') && resource.data.domiciliarioId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['estado', 'metodoPago'])
           && request.resource.data.estado == 'entregado'
-          && resource.data.estado in [
-             'aceptado', 'enPreparacion', 'listo', 'enCamino'
-           ]
+          && resource.data.estado == 'enCamino'
           && medioDePago(request.resource.data.metodoPago));
     }
   }
